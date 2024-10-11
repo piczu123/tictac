@@ -1,72 +1,104 @@
-const socket = io();
-let symbol = null;
-let isTurn = false;
-let playerName = prompt('Enter your name:');
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = window.location.pathname.replace('/', '');
+let playerName;
+let currentPlayer;
+let board = Array(15).fill().map(() => Array(15).fill(''));
+let gameActive = false;
 
-if (playerName) {
-    socket.emit('joinRoom', { roomId, playerName });
+document.getElementById('startGame').addEventListener('click', () => {
+    playerName = document.getElementById('playerName').value;
+    if (!playerName) {
+        alert('Please enter your name.');
+        return;
+    }
+    
+    document.getElementById('playerSetup').classList.add('hidden');
+    document.getElementById('gameBoard').classList.remove('hidden');
+    
+    currentPlayer = 'X'; // Player 1 starts
+    renderBoard();
+    generateInviteLink();
+});
+
+function generateInviteLink() {
+    const inviteLink = `${window.location.href}?player=${encodeURIComponent(playerName)}`;
+    document.getElementById('inviteLink').value = inviteLink;
+    document.getElementById('inviteLinkContainer').classList.remove('hidden');
 }
 
-const board = document.getElementById('board');
-const cells = [];
-
-// Create the 15x15 grid dynamically
-for (let row = 0; row < 15; row++) {
-    const rowDiv = document.createElement('div');
-    rowDiv.classList.add('row');
-    
-    for (let col = 0; col < 15; col++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.dataset.row = row;
-        cell.dataset.col = col;
-        
-        cell.addEventListener('click', () => {
-            if (isTurn && !cell.textContent) {
-                socket.emit('makeMove', { row, col });
-            }
+function renderBoard() {
+    const boardElement = document.getElementById('board');
+    boardElement.innerHTML = '';
+    board.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+            const cellElement = document.createElement('div');
+            cellElement.className = 'cell';
+            cellElement.innerText = cell;
+            cellElement.addEventListener('click', () => handleCellClick(rowIndex, colIndex));
+            boardElement.appendChild(cellElement);
         });
-        
-        rowDiv.appendChild(cell);
-        cells.push(cell);
-    }
-    
-    board.appendChild(rowDiv);
+    });
 }
 
-// Listen for symbol assignment (X or O)
-socket.on('assignSymbol', (assignedSymbol) => {
-    symbol = assignedSymbol;
-    alert(`You are player ${symbol}`);
-    if (symbol === 'X') {
-        isTurn = true; // Player X starts first
+function handleCellClick(row, col) {
+    if (!gameActive || board[row][col]) {
+        return;
     }
-});
+    
+    board[row][col] = currentPlayer;
+    checkForWinner();
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Switch players
+    renderBoard();
+}
 
-// Listen for game readiness
-socket.on('gameReady', ({ playerX, playerO }) => {
-    alert(`${playerX} (X) vs ${playerO} (O) - Game is starting!`);
-});
-
-// Listen for board updates
-socket.on('updateBoard', ({ row, col, symbol }) => {
-    const cell = cells.find(c => c.dataset.row == row && c.dataset.col == col);
-    if (cell) {
-        cell.textContent = symbol;
+function checkForWinner() {
+    // Check rows, columns, and diagonals for a win
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 11; j++) {
+            // Check rows
+            if (board[i][j] && board[i].slice(j, j + 5).every(cell => cell === board[i][j])) {
+                declareWinner(board[i][j]);
+                return;
+            }
+            // Check columns
+            if (board[j][i] && board.slice(j, j + 5).every(row => row[i] === board[j][i])) {
+                declareWinner(board[j][i]);
+                return;
+            }
+        }
     }
 
-    // Check if it's our turn
-    if (symbol === symbol) {
-        isTurn = false;
-    } else {
-        isTurn = true;
+    // Check diagonals
+    for (let i = 0; i < 11; i++) {
+        for (let j = 0; j < 11; j++) {
+            if (board[i][j] && 
+                board[i + 1][j + 1] === board[i][j] && 
+                board[i + 2][j + 2] === board[i][j] && 
+                board[i + 3][j + 3] === board[i][j] && 
+                board[i + 4][j + 4] === board[i][j]) {
+                declareWinner(board[i][j]);
+                return;
+            }
+            if (board[i][j + 4] && 
+                board[i + 1][j + 3] === board[i][j + 4] && 
+                board[i + 2][j + 2] === board[i][j + 4] && 
+                board[i + 3][j + 1] === board[i][j + 4] && 
+                board[i + 4][j] === board[i][j + 4]) {
+                declareWinner(board[i][j + 4]);
+                return;
+            }
+        }
     }
-});
 
-// Handle disconnection of other player
-socket.on('playerDisconnected', () => {
-    alert('The other player has disconnected. The game will reset.');
-    location.reload();
-});
+    // Check for a draw
+    if (board.flat().every(cell => cell)) {
+        document.getElementById('status').innerText = "It's a draw!";
+        gameActive = false;
+    }
+}
+
+function declareWinner(winner) {
+    document.getElementById('status').innerText = `${winner} wins!`;
+    gameActive = false;
+}
+
+// Enable the game
+gameActive = true;

@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Tic Tac Toe</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Multiplayer Tic Tac Toe</h1>
-    <div id="invite">
-        <p>Invite a friend: <a id="inviteLink" href="#">Copy Invite Link</a></p>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div id="playerSetup">
+            <input type="text" id="playerName" placeholder="Enter your name" />
+            <button id="startGame">Start Game</button>
+        </div>
+        <div id="inviteLinkContainer" class="hidden">
+            <p>Share this link to invite others:</p>
+            <input type="text" id="inviteLink" readonly />
+        </div>
+        <div id="gameBoard" class="hidden">
+            <div class="board" id="board"></div>
+            <div id="status"></div>
+        </div>
     </div>
-    <div id="board"></div>
-
-    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
-
-    <script>
-        const inviteLink = document.getElementById('inviteLink');
-        inviteLink.href = `${window.location.origin}/${roomId}`;
-        inviteLink.addEventListener('click', () => {
-            navigator.clipboard.writeText(inviteLink.href);
-            alert('Invite link copied to clipboard!');
-        });
-    </script>
 </body>
 </html>
