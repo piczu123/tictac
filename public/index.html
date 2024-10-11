@@ -8,9 +8,21 @@
 </head>
 <body>
     <h1>Multiplayer Tic Tac Toe</h1>
+    <div id="invite">
+        <p>Invite a friend: <a id="inviteLink" href="#">Copy Invite Link</a></p>
+    </div>
     <div id="board"></div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
+
+    <script>
+        const inviteLink = document.getElementById('inviteLink');
+        inviteLink.href = `${window.location.origin}/${roomId}`;
+        inviteLink.addEventListener('click', () => {
+            navigator.clipboard.writeText(inviteLink.href);
+            alert('Invite link copied to clipboard!');
+        });
+    </script>
 </body>
 </html>

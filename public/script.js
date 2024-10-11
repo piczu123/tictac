@@ -1,6 +1,13 @@
 const socket = io();
 let symbol = null;
 let isTurn = false;
+let playerName = prompt('Enter your name:');
+const urlParams = new URLSearchParams(window.location.search);
+const roomId = window.location.pathname.replace('/', '');
+
+if (playerName) {
+    socket.emit('joinRoom', { roomId, playerName });
+}
 
 const board = document.getElementById('board');
 const cells = [];
@@ -33,10 +40,14 @@ for (let row = 0; row < 15; row++) {
 socket.on('assignSymbol', (assignedSymbol) => {
     symbol = assignedSymbol;
     alert(`You are player ${symbol}`);
-    
     if (symbol === 'X') {
         isTurn = true; // Player X starts first
     }
+});
+
+// Listen for game readiness
+socket.on('gameReady', ({ playerX, playerO }) => {
+    alert(`${playerX} (X) vs ${playerO} (O) - Game is starting!`);
 });
 
 // Listen for board updates
