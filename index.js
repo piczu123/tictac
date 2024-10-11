@@ -16,6 +16,10 @@ io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
     socket.on('createRoom', (roomName) => {
+        if (rooms[roomName]) {
+            socket.emit('roomExists');
+            return;
+        }
         rooms[roomName] = {
             board: Array.from({ length: 15 }, () => Array(15).fill(null)),
             currentTurn: 'X',
@@ -46,6 +50,7 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('updateBoard', room.board);
             if (winner) {
                 io.to(roomName).emit('gameOver', winner);
+                delete rooms[roomName]; // Optional: remove room after game over
             }
         }
     });

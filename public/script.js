@@ -2,12 +2,24 @@ const socket = io();
 
 document.getElementById('createRoom').addEventListener('click', () => {
     const roomName = document.getElementById('roomName').value;
-    socket.emit('createRoom', roomName);
+    if (roomName) {
+        socket.emit('createRoom', roomName);
+    } else {
+        alert('Please enter a room name.');
+    }
 });
 
 document.getElementById('joinRoom').addEventListener('click', () => {
     const roomName = document.getElementById('roomName').value;
-    socket.emit('joinRoom', roomName);
+    if (roomName) {
+        socket.emit('joinRoom', roomName);
+    } else {
+        alert('Please enter a room name.');
+    }
+});
+
+socket.on('roomExists', () => {
+    alert('Room already exists. Please choose another name.');
 });
 
 socket.on('roomCreated', (roomName) => {
