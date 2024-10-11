@@ -18,6 +18,7 @@ document.getElementById('joinRoom').addEventListener('click', () => {
     }
 });
 
+// Listen for various events from the server
 socket.on('roomExists', () => {
     alert('Room already exists. Please choose another name.');
 });
@@ -33,10 +34,12 @@ socket.on('roomNotFound', () => {
 socket.on('roomCreated', (roomName) => {
     alert(`Room ${roomName} created!`);
     createBoard(); // Show the board for the creator
+    document.getElementById('board').style.display = 'grid'; // Show the board
 });
 
 socket.on('playerJoined', (players) => {
     console.log('Players in the room:', players);
+    document.getElementById('board').style.display = 'grid'; // Show the board for both players
 });
 
 socket.on('gameState', (state) => {
@@ -72,11 +75,6 @@ function createBoard() {
     }
 }
 
-function makeMove(x, y) {
-    const roomName = document.getElementById('roomName').value;
-    socket.emit('makeMove', { roomName, x, y });
-}
-
 function updateBoard(board) {
     const cells = document.querySelectorAll('.cell');
     cells.forEach(cell => {
@@ -84,4 +82,9 @@ function updateBoard(board) {
         const y = cell.dataset.y;
         cell.innerText = board[x][y] || '';
     });
+}
+
+function makeMove(x, y) {
+    const roomName = document.getElementById('roomName').value;
+    socket.emit('makeMove', { roomName, x, y });
 }
