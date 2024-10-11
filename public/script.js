@@ -26,9 +26,9 @@ socket.on('roomFull', () => {
     alert('The room is full. Please try another room.');
 });
 
-socket.on('roomCreated', (roomName, inviteLink) => {
-    alert(`Room ${roomName} created! Share this link to invite a player: ${inviteLink}`);
-    createBoard();
+socket.on('roomCreated', (roomName) => {
+    alert(`Room ${roomName} created!`);
+    createBoard(); // Show the board for the creator
 });
 
 socket.on('playerJoined', (players) => {
@@ -37,6 +37,7 @@ socket.on('playerJoined', (players) => {
 
 socket.on('gameState', (state) => {
     updateBoard(state.board);
+    document.getElementById('board').style.display = 'grid'; // Show the board for the joining player
 });
 
 socket.on('updateBoard', (board) => {

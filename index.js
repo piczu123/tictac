@@ -27,16 +27,17 @@ io.on('connection', (socket) => {
         };
         socket.join(roomName);
         rooms[roomName].players[socket.id] = 'X'; // Assign player X
-        socket.emit('roomCreated', roomName, `https://your-app-name.herokuapp.com/?room=${roomName}`); // Send the invite link
+        socket.emit('roomCreated', roomName);
+        io.to(roomName).emit('updateTurn', rooms[roomName].currentTurn); // Notify all players about the turn
     });
 
     socket.on('joinRoom', (roomName) => {
         if (rooms[roomName] && Object.keys(rooms[roomName].players).length < 2) {
             socket.join(roomName);
             rooms[roomName].players[socket.id] = 'O'; // Assign player O
-            io.to(roomName).emit('playerJoined', rooms[roomName].players);
             socket.emit('gameState', rooms[roomName]);
-            io.to(roomName).emit('updateTurn', rooms[roomName].currentTurn);
+            io.to(roomName).emit('playerJoined', rooms[roomName].players);
+            io.to(roomName).emit('updateTurn', rooms[roomName].currentTurn); // Notify all players about the turn
         } else if (rooms[roomName]) {
             socket.emit('roomFull');
         } else {
