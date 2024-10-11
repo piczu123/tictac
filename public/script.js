@@ -60,13 +60,14 @@ socket.on('gameOver', (winner) => {
     document.getElementById('board').style.display = 'none'; // Hide the board when the game is over
 });
 
+// Create the game board
 function createBoard() {
     const boardDiv = document.getElementById('board');
-    boardDiv.innerHTML = ''; // Clear previous board
+    boardDiv.innerHTML = ''; // Clear previous cells
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
-            cell.className = 'cell';
+            cell.classList.add('cell');
             cell.dataset.x = i;
             cell.dataset.y = j;
             cell.addEventListener('click', () => makeMove(i, j));
@@ -75,6 +76,7 @@ function createBoard() {
     }
 }
 
+// Update the board display
 function updateBoard(board) {
     const cells = document.querySelectorAll('.cell');
     cells.forEach(cell => {
@@ -84,6 +86,7 @@ function updateBoard(board) {
     });
 }
 
+// Make a move
 function makeMove(x, y) {
     const roomName = document.getElementById('roomName').value;
     socket.emit('makeMove', { roomName, x, y });

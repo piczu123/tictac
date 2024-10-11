@@ -15,6 +15,7 @@ app.use(express.static('public'));
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
+    // Handle room creation
     socket.on('createRoom', (roomName) => {
         if (rooms[roomName]) {
             socket.emit('roomExists');
@@ -31,6 +32,7 @@ io.on('connection', (socket) => {
         io.to(roomName).emit('updateTurn', rooms[roomName].currentTurn); // Notify all players about the turn
     });
 
+    // Handle player joining a room
     socket.on('joinRoom', (roomName) => {
         if (rooms[roomName] && Object.keys(rooms[roomName].players).length < 2) {
             socket.join(roomName);
@@ -45,6 +47,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle making a move
     socket.on('makeMove', ({ roomName, x, y }) => {
         const room = rooms[roomName];
         if (room && room.board[x][y] === null && room.players[socket.id] === room.currentTurn) {
@@ -60,6 +63,7 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Check for a winner
     function checkWinner(board, x, y) {
         const player = board[x][y];
         const directions = [
@@ -94,9 +98,17 @@ io.on('connection', (socket) => {
         return null;
     }
 
+    // Handle player disconnection
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
-        // Handle player disconnection logic here
+        for (const roomName in rooms) {
+            if (rooms[roomName].players[socket.id]) {
+                delete rooms[roomName].players[socket.id];
+                // Notify other players that someone has left
+                io.to(roomName).emit('playerLeft', socket.id);
+                break;
+            }
+        }
     });
 });
 
