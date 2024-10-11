@@ -22,8 +22,12 @@ socket.on('roomExists', () => {
     alert('Room already exists. Please choose another name.');
 });
 
-socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created!`);
+socket.on('roomFull', () => {
+    alert('The room is full. Please try another room.');
+});
+
+socket.on('roomCreated', (roomName, inviteLink) => {
+    alert(`Room ${roomName} created! Share this link to invite a player: ${inviteLink}`);
     createBoard();
 });
 
@@ -37,6 +41,10 @@ socket.on('gameState', (state) => {
 
 socket.on('updateBoard', (board) => {
     updateBoard(board);
+});
+
+socket.on('updateTurn', (turn) => {
+    document.getElementById('currentTurn').innerText = `Current Turn: Player ${turn}`;
 });
 
 socket.on('gameOver', (winner) => {

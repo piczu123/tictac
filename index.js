@@ -27,15 +27,18 @@ io.on('connection', (socket) => {
         };
         socket.join(roomName);
         rooms[roomName].players[socket.id] = 'X'; // Assign player X
-        socket.emit('roomCreated', roomName);
+        socket.emit('roomCreated', roomName, `https://your-app-name.herokuapp.com/?room=${roomName}`); // Send the invite link
     });
 
     socket.on('joinRoom', (roomName) => {
-        if (rooms[roomName]) {
+        if (rooms[roomName] && Object.keys(rooms[roomName].players).length < 2) {
             socket.join(roomName);
             rooms[roomName].players[socket.id] = 'O'; // Assign player O
             io.to(roomName).emit('playerJoined', rooms[roomName].players);
             socket.emit('gameState', rooms[roomName]);
+            io.to(roomName).emit('updateTurn', rooms[roomName].currentTurn);
+        } else if (rooms[roomName]) {
+            socket.emit('roomFull');
         } else {
             socket.emit('roomNotFound');
         }
@@ -43,11 +46,12 @@ io.on('connection', (socket) => {
 
     socket.on('makeMove', ({ roomName, x, y }) => {
         const room = rooms[roomName];
-        if (room && room.board[x][y] === null) {
+        if (room && room.board[x][y] === null && room.players[socket.id] === room.currentTurn) {
             room.board[x][y] = room.currentTurn;
             const winner = checkWinner(room.board, x, y);
             room.currentTurn = room.currentTurn === 'X' ? 'O' : 'X';
             io.to(roomName).emit('updateBoard', room.board);
+            io.to(roomName).emit('updateTurn', room.currentTurn);
             if (winner) {
                 io.to(roomName).emit('gameOver', winner);
                 delete rooms[roomName]; // Optional: remove room after game over
