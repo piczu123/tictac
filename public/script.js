@@ -1,64 +1,61 @@
 const socket = io();
-const gameBoard = document.getElementById("gameBoard");
-const startGameButton = document.getElementById("startGame");
-const messageDiv = document.getElementById("message");
 
-let currentPlayer = "X";
-const board = Array(15).fill(null).map(() => Array(15).fill(null));
+document.getElementById('createRoom').addEventListener('click', () => {
+    const roomName = document.getElementById('roomName').value;
+    socket.emit('createRoom', roomName);
+});
+
+document.getElementById('joinRoom').addEventListener('click', () => {
+    const roomName = document.getElementById('roomName').value;
+    socket.emit('joinRoom', roomName);
+});
+
+socket.on('roomCreated', (roomName) => {
+    alert(`Room ${roomName} created!`);
+    createBoard();
+});
+
+socket.on('playerJoined', (players) => {
+    console.log('Players in the room:', players);
+});
+
+socket.on('gameState', (state) => {
+    updateBoard(state.board);
+});
+
+socket.on('updateBoard', (board) => {
+    updateBoard(board);
+});
+
+socket.on('gameOver', (winner) => {
+    document.getElementById('message').innerText = `Player ${winner} wins!`;
+});
 
 function createBoard() {
-    gameBoard.innerHTML = "";
-    for (let row = 0; row < 15; row++) {
-        for (let col = 0; col < 15; col++) {
-            const cell = document.createElement("div");
-            cell.className = "cell";
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            cell.addEventListener("click", () => handleCellClick(row, col));
-            gameBoard.appendChild(cell);
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = ''; // Clear previous board
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 15; j++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.x = i;
+            cell.dataset.y = j;
+            cell.addEventListener('click', () => makeMove(i, j));
+            boardDiv.appendChild(cell);
         }
     }
 }
 
-function handleCellClick(row, col) {
-    if (!board[row][col]) {
-        board[row][col] = currentPlayer;
-        socket.emit("playerMove", { row, col, player: currentPlayer });
-        renderBoard();
-        if (checkWinner(currentPlayer)) {
-            messageDiv.textContent = `${currentPlayer} wins!`;
-            socket.emit("gameOver", currentPlayer);
-        } else {
-            currentPlayer = currentPlayer === "X" ? "O" : "X";
-        }
-    }
+function makeMove(x, y) {
+    const roomName = document.getElementById('roomName').value;
+    socket.emit('makeMove', { roomName, x, y });
 }
 
-function renderBoard() {
-    const cells = document.querySelectorAll(".cell");
+function updateBoard(board) {
+    const cells = document.querySelectorAll('.cell');
     cells.forEach(cell => {
-        const row = cell.dataset.row;
-        const col = cell.dataset.col;
-        cell.textContent = board[row][col] || "";
+        const x = cell.dataset.x;
+        const y = cell.dataset.y;
+        cell.textContent = board[x][y] || '';
     });
 }
-
-function checkWinner(player) {
-    // Check rows, columns and diagonals for a win
-    // Implement your win-checking logic here
-    return false; // Replace with actual win-checking logic
-}
-
-startGameButton.addEventListener("click", () => {
-    createBoard();
-    messageDiv.textContent = "";
-});
-
-socket.on("updateBoard", (data) => {
-    board[data.row][data.col] = data.player;
-    renderBoard();
-});
-
-socket.on("gameOver", (winner) => {
-    messageDiv.textContent = `${winner} wins!`;
-});
