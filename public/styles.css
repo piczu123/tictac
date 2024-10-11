@@ -1,39 +1,62 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: Arial, sans-serif;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   height: 100vh;
-  margin: 0;
+  background-color: #f4f4f4;
+}
+
+.container {
+  text-align: center;
 }
 
 #game-board {
   display: grid;
-  grid-template-columns: repeat(15, 40px); /* Adjust cell size */
-  grid-template-rows: repeat(15, 40px);
-  gap: 2px; /* Space between cells */
+  grid-template-columns: repeat(15, 30px);
+  grid-template-rows: repeat(15, 30px);
+  gap: 5px;
+  margin-top: 20px;
 }
 
 .cell {
-  width: 40px; /* Adjust size to fit */
-  height: 40px;
-  background-color: #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem; /* Adjust font size for larger cells */
-  cursor: pointer;
+  width: 30px;
+  height: 30px;
   border: 1px solid #333;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  cursor: pointer;
 }
 
-h1 {
-  margin-bottom: 20px;
+#welcome-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-#reset-button {
+#game-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+button {
   margin-top: 20px;
   padding: 10px 20px;
-  font-size: 16px;
+  background-color: #333;
+  color: white;
+  border: none;
   cursor: pointer;
+}
+
+button:hover {
+  background-color: #555;
 }
