@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
         if (rooms[roomName] && Object.keys(rooms[roomName].players).length < 2) {
             socket.join(roomName);
             rooms[roomName].players[socket.id] = 'O'; // Assign player O
-            socket.emit('gameState', rooms[roomName]);
+            socket.emit('gameState', rooms[roomName]); // Send game state to new player
             io.to(roomName).emit('playerJoined', rooms[roomName].players);
             io.to(roomName).emit('updateTurn', rooms[roomName].currentTurn); // Notify all players about the turn
         } else if (rooms[roomName]) {
