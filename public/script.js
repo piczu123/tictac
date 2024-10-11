@@ -1,88 +1,61 @@
 const socket = io();
+let symbol = null;
+let isTurn = false;
 
-document.getElementById('start-game').addEventListener('click', () => {
-  const playerName = document.getElementById('player-name').value;
-  if (playerName) {
-    document.getElementById('welcome-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
-    socket.emit('joinGame', { playerName });
+const board = document.getElementById('board');
+const cells = [];
 
-    // Generate invite link
-    const inviteButton = document.getElementById('invite-link');
-    inviteButton.addEventListener('click', () => {
-      const inviteLink = `${window.location.origin}?gameId=${socket.id}`;
-      prompt('Invite another player using this link:', inviteLink);
-    });
-  }
+// Create the 15x15 grid dynamically
+for (let row = 0; row < 15; row++) {
+    const rowDiv = document.createElement('div');
+    rowDiv.classList.add('row');
+    
+    for (let col = 0; col < 15; col++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.row = row;
+        cell.dataset.col = col;
+        
+        cell.addEventListener('click', () => {
+            if (isTurn && !cell.textContent) {
+                socket.emit('makeMove', { row, col });
+            }
+        });
+        
+        rowDiv.appendChild(cell);
+        cells.push(cell);
+    }
+    
+    board.appendChild(rowDiv);
+}
+
+// Listen for symbol assignment (X or O)
+socket.on('assignSymbol', (assignedSymbol) => {
+    symbol = assignedSymbol;
+    alert(`You are player ${symbol}`);
+    
+    if (symbol === 'X') {
+        isTurn = true; // Player X starts first
+    }
 });
 
-// Create game board
-const boardSize = 15;
-const gameBoard = document.getElementById('game-board');
-let gameState = Array(boardSize).fill().map(() => Array(boardSize).fill(''));
-let currentPlayer = 'X';
+// Listen for board updates
+socket.on('updateBoard', ({ row, col, symbol }) => {
+    const cell = cells.find(c => c.dataset.row == row && c.dataset.col == col);
+    if (cell) {
+        cell.textContent = symbol;
+    }
 
-for (let i = 0; i < boardSize; i++) {
-  for (let j = 0; j < boardSize; j++) {
-    const cell = document.createElement('div');
-    cell.classList.add('cell');
-    cell.dataset.row = i;
-    cell.dataset.col = j;
-    gameBoard.appendChild(cell);
-
-    cell.addEventListener('click', () => {
-      if (gameState[i][j] === '') {
-        cell.textContent = currentPlayer;
-        gameState[i][j] = currentPlayer;
-        checkWinner(i, j, currentPlayer);
-
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        socket.emit('move', { row: i, col: j, player: currentPlayer });
-      }
-    });
-  }
-}
-
-// Listen for other players' moves
-socket.on('opponentMove', ({ row, col, player }) => {
-  const cell = document.querySelector(`[data-row='${row}'][data-col='${col}']`);
-  cell.textContent = player;
-  gameState[row][col] = player;
-  currentPlayer = player === 'X' ? 'O' : 'X';
+    // Check if it's our turn
+    if (symbol === symbol) {
+        isTurn = false;
+    } else {
+        isTurn = true;
+    }
 });
 
-function checkWinner(row, col, player) {
-  // Winning logic for 5 in a row
-  const directions = [
-    { dx: 1, dy: 0 }, // Horizontal
-    { dx: 0, dy: 1 }, // Vertical
-    { dx: 1, dy: 1 }, // Diagonal down-right
-    { dx: 1, dy: -1 } // Diagonal down-left
-  ];
-
-  for (const { dx, dy } of directions) {
-    let count = 1;
-    for (let i = 1; i < 5; i++) {
-      const r = row + i * dy, c = col + i * dx;
-      if (r >= 0 && c >= 0 && r < boardSize && c < boardSize && gameState[r][c] === player) count++;
-      else break;
-    }
-    for (let i = 1; i < 5; i++) {
-      const r = row - i * dy, c = col - i * dx;
-      if (r >= 0 && c >= 0 && r < boardSize && c < boardSize && gameState[r][c] === player) count++;
-      else break;
-    }
-    if (count >= 5) {
-      alert(`${player} wins!`);
-      resetBoard();
-      break;
-    }
-  }
-}
-
-function resetBoard() {
-  gameState = Array(boardSize).fill().map(() => Array(boardSize).fill(''));
-  document.querySelectorAll('.cell').forEach(cell => {
-    cell.textContent = '';
-  });
-}
+// Handle disconnection of other player
+socket.on('playerDisconnected', () => {
+    alert('The other player has disconnected. The game will reset.');
+    location.reload();
+});
