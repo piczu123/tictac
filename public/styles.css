@@ -1,50 +1,48 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #f4f4f4;
   text-align: center;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
 }
 
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+.game-container {
+  margin: 20px auto;
+  width: 80%;
+  max-width: 800px;
 }
 
-#playerSetup {
-  margin-bottom: 20px;
-}
-
-#board {
+#game-board {
   display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  grid-gap: 5px;
-  margin: 20px 0;
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
+  gap: 5px;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 .cell {
-  width: 30px;
-  height: 30px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 24px;
-}
-
-.cell:hover {
+  width: 40px;
+  height: 40px;
   background-color: #e0e0e0;
+  border: 1px solid #000;
+  font-size: 24px;
+  line-height: 40px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
 }
 
-.hidden {
-  display: none;
+#game-info {
+  margin-bottom: 20px;
 }
 
-#status {
+#invite-link-container {
   margin-top: 20px;
-  font-size: 18px;
+}
+
+#invite-link {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
 }

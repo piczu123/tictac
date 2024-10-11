@@ -3,25 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe</title>
+    <title>Tic Tac Toe Multiplayer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Tic Tac Toe</h1>
-        <div id="playerSetup">
-            <input type="text" id="playerName" placeholder="Enter your name" />
-            <button id="startGame">Start Game</button>
+    <div class="game-container">
+        <h1>Tic Tac Toe - 5 in a Row</h1>
+        <div id="game-info">
+            <label for="player-name">Enter your name: </label>
+            <input type="text" id="player-name" placeholder="Your name">
+            <button id="start-game">Start Game</button>
         </div>
-        <div id="inviteLinkContainer" class="hidden">
-            <p>Share this link to invite others:</p>
-            <input type="text" id="inviteLink" readonly />
+        
+        <div id="invite-link-container" style="display:none;">
+            <p>Invite your friend by sharing this link:</p>
+            <input type="text" id="invite-link" readonly>
         </div>
-        <div id="gameBoard" class="hidden">
-            <div class="board" id="board"></div>
-            <div id="status"></div>
-        </div>
+
+        <div id="game-board"></div>
+
+        <div id="game-status"></div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
