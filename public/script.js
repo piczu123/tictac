@@ -26,6 +26,10 @@ socket.on('roomFull', () => {
     alert('The room is full. Please try another room.');
 });
 
+socket.on('roomNotFound', () => {
+    alert('Room not found. Please check the name and try again.');
+});
+
 socket.on('roomCreated', (roomName) => {
     alert(`Room ${roomName} created!`);
     createBoard(); // Show the board for the creator
@@ -50,6 +54,7 @@ socket.on('updateTurn', (turn) => {
 
 socket.on('gameOver', (winner) => {
     document.getElementById('message').innerText = `Player ${winner} wins!`;
+    document.getElementById('board').style.display = 'none'; // Hide the board when the game is over
 });
 
 function createBoard() {
@@ -77,6 +82,6 @@ function updateBoard(board) {
     cells.forEach(cell => {
         const x = cell.dataset.x;
         const y = cell.dataset.y;
-        cell.textContent = board[x][y] || '';
+        cell.innerText = board[x][y] || '';
     });
 }
