@@ -1,74 +1,32 @@
-const socket = io();
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 
-let playerSymbol = null;
-let currentPlayer = null;
-let boardState = Array(225).fill(null);  // 15x15 grid
-let gameStarted = false;
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-// Generate the 15x15 game board dynamically
-function createGameBoard() {
-    const boardElement = document.getElementById('board');
-    boardElement.innerHTML = '';  // Clear existing cells
+app.use(express.static(__dirname)); // Serve static files
 
-    for (let i = 0; i < 225; i++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.setAttribute('data-index', i);
-        cell.addEventListener('click', handleCellClick);
-        boardElement.appendChild(cell);
-    }
-}
+io.on("connection", (socket) => {
+    console.log("A user connected");
 
-// When the player connects, receive their symbol (X or O)
-socket.on('playerSymbol', function(symbol) {
-    playerSymbol = symbol;
-    document.getElementById('game-status').textContent = `You are playing as ${playerSymbol}`;
-    gameStarted = true;
-});
-
-// When the board is updated, update the game board on the client
-socket.on('boardUpdate', function(newBoardState, currentTurn) {
-    boardState = newBoardState;
-    currentPlayer = currentTurn;
-    updateGameBoard();
-    updateGameStatus();
-});
-
-// Handle the player clicking on a cell
-function handleCellClick(event) {
-    const cellIndex = event.target.getAttribute('data-index');
-
-    // Prevent moves if it's not player's turn or the cell is already occupied
-    if (!gameStarted || currentPlayer !== playerSymbol || boardState[cellIndex] !== null) {
-        return;
-    }
-
-    // Send the move to the server
-    socket.emit('makeMove', cellIndex);
-}
-
-// Update the game board to reflect the current state
-function updateGameBoard() {
-    const cells = document.querySelectorAll('.cell');
-    cells.forEach((cell, index) => {
-        cell.textContent = boardState[index];
+    socket.on("playerMove", (data) => {
+        // Broadcast the move to other clients
+        socket.broadcast.emit("updateBoard", data);
     });
-}
 
-function updateGameStatus() {
-    document.getElementById('game-status').textContent = `${currentPlayer}'s turn`;
-}
+    socket.on("gameOver", (winner) => {
+        // Broadcast game over event
+        socket.broadcast.emit("gameOver", winner);
+    });
 
-// Show the invite link to the user
-function showInviteLink() {
-    const inviteLink = `${window.location.href}?game=${socket.id}`;
-    document.getElementById('invite-link').value = inviteLink;
-}
-
-// When the game is ready, display the invite link
-socket.on('gameReady', function() {
-    showInviteLink();
+    socket.on("disconnect", () => {
+        console.log("A user disconnected");
+    });
 });
 
-// Create the game board on load
-createGameBoard();
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});

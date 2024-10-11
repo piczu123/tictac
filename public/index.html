@@ -5,26 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic Tac Toe</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="/socket.io/socket.io.js"></script> <!-- Ensure this is included for socket.io -->
+    <script src="script.js" defer></script>
 </head>
 <body>
-    <h1>Tic Tac Toe</h1>
-
-    <div id="game-status">Waiting for opponent...</div>
-    
-    <!-- Invite Link -->
-    <div id="invite-container">
-        <p>Invite a friend by sharing this link:</p>
-        <input type="text" id="invite-link" readonly>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div id="gameBoard" class="game-board"></div>
+        <button id="startGame">Start Game</button>
+        <div id="message"></div>
     </div>
-
-    <!-- Game Board (15x15) -->
-    <div class="game-board">
-        <div class="grid-container" id="board">
-            <!-- Grid cells will be created dynamically -->
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="index.js"></script>
 </body>
 </html>
