@@ -1,92 +1,66 @@
 const express = require('express');
 const http = require('http');
-const socketIO = require('socket.io');
-const { v4: uuidv4 } = require('uuid'); // Use to create unique game room links
+const socketIo = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
+const io = socketIo(server);
 
-app.use(express.static('public'));
+let players = {}; // To keep track of the connected players and their symbols (X or O)
+let boardState = Array(15 * 15).fill(null); // Initialize an empty 15x15 board
+let currentPlayer = 'X'; // Start with player X
 
-// Store active game rooms and player data
-const gameRooms = {};
+// Serve the static files (HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// WebSocket connection
 io.on('connection', (socket) => {
-    console.log('A player connected:', socket.id);
+    console.log('A user connected:', socket.id);
 
-    // When a player joins a room
-    socket.on('joinRoom', ({ roomId, playerName }) => {
-        if (!gameRooms[roomId]) {
-            gameRooms[roomId] = {
-                players: {},
-                gameState: Array(15).fill().map(() => Array(15).fill(null)), // 15x15 grid
-                currentPlayer: 'X',
-            };
-        }
+    // Assign the player a symbol (X or O)
+    let symbol = Object.keys(players).length === 0 ? 'X' : 'O';
+    players[socket.id] = symbol;
+    
+    // Let the player know their symbol
+    socket.emit('playerSymbol', symbol);
 
-        const room = gameRooms[roomId];
+    // Broadcast the current board state and the current player's turn to all connected clients
+    socket.emit('boardUpdate', boardState, currentPlayer);
 
-        // Assign player X or O depending on whether they are the first or second to join
-        if (!room.players.X) {
-            room.players.X = { id: socket.id, name: playerName };
-            socket.emit('assignSymbol', 'X');
-        } else if (!room.players.O) {
-            room.players.O = { id: socket.id, name: playerName };
-            socket.emit('assignSymbol', 'O');
-        } else {
-            socket.emit('full'); // Notify if room is full
-            socket.disconnect();
+    // Handle a player's move
+    socket.on('makeMove', (index) => {
+        if (players[socket.id] !== currentPlayer) {
+            // Not this player's turn
             return;
         }
 
-        socket.join(roomId); // Join the socket.io room for the game
+        // Ensure the selected cell is empty
+        if (boardState[index] === null) {
+            // Update the board state
+            boardState[index] = currentPlayer;
+            
+            // Switch to the other player
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
 
-        // Broadcast to both players that the game is ready if both have joined
-        if (room.players.X && room.players.O) {
-            io.to(roomId).emit('gameReady', {
-                playerX: room.players.X.name,
-                playerO: room.players.O.name
-            });
+            // Broadcast the updated board state to all players
+            io.emit('boardUpdate', boardState, currentPlayer);
         }
+    });
 
-        // Handle a player's move
-        socket.on('makeMove', ({ row, col }) => {
-            if (socket.id === room.players[room.currentPlayer].id && room.gameState[row][col] === null) {
-                room.gameState[row][col] = room.currentPlayer;
-                io.to(roomId).emit('updateBoard', { row, col, symbol: room.currentPlayer });
-                
-                // Switch player turn
-                room.currentPlayer = room.currentPlayer === 'X' ? 'O' : 'X';
-            }
-        });
-
-        // Handle player disconnect
-        socket.on('disconnect', () => {
-            console.log('Player disconnected:', socket.id);
-
-            if (room.players.X && room.players.X.id === socket.id) {
-                delete room.players.X;
-            } else if (room.players.O && room.players.O.id === socket.id) {
-                delete room.players.O;
-            }
-
-            io.to(roomId).emit('playerDisconnected');
-        });
+    // Handle player disconnection
+    socket.on('disconnect', () => {
+        console.log('A user disconnected:', socket.id);
+        delete players[socket.id]; // Remove player from the list
     });
 });
 
-// Route to generate a new game link
-app.get('/new', (req, res) => {
-    const roomId = uuidv4();
-    res.redirect(`/${roomId}`);
-});
-
-// Catch-all route for rooms
-app.get('/:roomId', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
-});
-
-server.listen(process.env.PORT || 3000, () => {
-    console.log('Server is running...');
+// Start the server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
