@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe Multiplayer</title>
+    <title>Tic Tac Toe</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="game-container">
-        <h1>Tic Tac Toe - 5 in a Row</h1>
-        <div id="game-info">
-            <label for="player-name">Enter your name: </label>
-            <input type="text" id="player-name" placeholder="Your name">
-            <button id="start-game">Start Game</button>
-        </div>
+    <h1>Tic Tac Toe</h1>
 
-        <div id="invite-link-container" style="display:none;">
-            <p>Invite your friend by sharing this link:</p>
-            <input type="text" id="invite-link" readonly>
-        </div>
-
-        <div id="game-board"></div>
-
-        <div id="game-status"></div>
+    <div id="game-status">Waiting for opponent...</div>
+    
+    <!-- Invite Link -->
+    <div id="invite-container">
+        <p>Invite a friend by sharing this link:</p>
+        <input type="text" id="invite-link" readonly>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Game Board (15x15) -->
+    <div class="game-board">
+        <div class="grid-container" id="board">
+            <!-- Grid cells will be created dynamically -->
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="index.js"></script>
 </body>
 </html>

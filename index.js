@@ -1,66 +1,74 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const path = require('path');
+const socket = io();
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+let playerSymbol = null;
+let currentPlayer = null;
+let boardState = Array(225).fill(null);  // 15x15 grid
+let gameStarted = false;
 
-let players = {}; // To keep track of the connected players and their symbols (X or O)
-let boardState = Array(15 * 15).fill(null); // Initialize an empty 15x15 board
-let currentPlayer = 'X'; // Start with player X
+// Generate the 15x15 game board dynamically
+function createGameBoard() {
+    const boardElement = document.getElementById('board');
+    boardElement.innerHTML = '';  // Clear existing cells
 
-// Serve the static files (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, 'public')));
+    for (let i = 0; i < 225; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.setAttribute('data-index', i);
+        cell.addEventListener('click', handleCellClick);
+        boardElement.appendChild(cell);
+    }
+}
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// When the player connects, receive their symbol (X or O)
+socket.on('playerSymbol', function(symbol) {
+    playerSymbol = symbol;
+    document.getElementById('game-status').textContent = `You are playing as ${playerSymbol}`;
+    gameStarted = true;
 });
 
-// WebSocket connection
-io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+// When the board is updated, update the game board on the client
+socket.on('boardUpdate', function(newBoardState, currentTurn) {
+    boardState = newBoardState;
+    currentPlayer = currentTurn;
+    updateGameBoard();
+    updateGameStatus();
+});
 
-    // Assign the player a symbol (X or O)
-    let symbol = Object.keys(players).length === 0 ? 'X' : 'O';
-    players[socket.id] = symbol;
-    
-    // Let the player know their symbol
-    socket.emit('playerSymbol', symbol);
+// Handle the player clicking on a cell
+function handleCellClick(event) {
+    const cellIndex = event.target.getAttribute('data-index');
 
-    // Broadcast the current board state and the current player's turn to all connected clients
-    socket.emit('boardUpdate', boardState, currentPlayer);
+    // Prevent moves if it's not player's turn or the cell is already occupied
+    if (!gameStarted || currentPlayer !== playerSymbol || boardState[cellIndex] !== null) {
+        return;
+    }
 
-    // Handle a player's move
-    socket.on('makeMove', (index) => {
-        if (players[socket.id] !== currentPlayer) {
-            // Not this player's turn
-            return;
-        }
+    // Send the move to the server
+    socket.emit('makeMove', cellIndex);
+}
 
-        // Ensure the selected cell is empty
-        if (boardState[index] === null) {
-            // Update the board state
-            boardState[index] = currentPlayer;
-            
-            // Switch to the other player
-            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-
-            // Broadcast the updated board state to all players
-            io.emit('boardUpdate', boardState, currentPlayer);
-        }
+// Update the game board to reflect the current state
+function updateGameBoard() {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        cell.textContent = boardState[index];
     });
+}
 
-    // Handle player disconnection
-    socket.on('disconnect', () => {
-        console.log('A user disconnected:', socket.id);
-        delete players[socket.id]; // Remove player from the list
-    });
+function updateGameStatus() {
+    document.getElementById('game-status').textContent = `${currentPlayer}'s turn`;
+}
+
+// Show the invite link to the user
+function showInviteLink() {
+    const inviteLink = `${window.location.href}?game=${socket.id}`;
+    document.getElementById('invite-link').value = inviteLink;
+}
+
+// When the game is ready, display the invite link
+socket.on('gameReady', function() {
+    showInviteLink();
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// Create the game board on load
+createGameBoard();
