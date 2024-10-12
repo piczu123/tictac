@@ -52,18 +52,19 @@ socket.on('roomJoined', (roomName, players) => {
     gameDiv.style.display = 'block';
     playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
     initializeBoard();
+    statusDiv.innerText = `Game started! It's ${players[0].name}'s turn.`;
 });
 
 socket.on('playerJoined', (playerName) => {
     statusDiv.innerText = `${playerName} joined the game!`;
-    socket.emit('requestGameStart', currentRoom);
 });
 
 socket.on('startGame', (players) => {
     gameDiv.style.display = 'block';
     playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
-    statusDiv.innerText = `Game started! Waiting for the first move...`;
-    initializeBoard(); // Initialize board when the game starts
+    initializeBoard();
+    const firstPlayer = Math.random() < 0.5 ? players[0] : players[1];
+    statusDiv.innerText = `Game started! It's ${firstPlayer.name}'s turn.`;
 });
 
 function initializeBoard() {

@@ -1,10 +1,11 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #f0f0f0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
+  background-color: #f0f0f0;
   margin: 0;
 }
 
@@ -12,49 +13,40 @@ body {
   text-align: center;
 }
 
-#name-prompt, #room-controls {
+#name-prompt,
+#room-controls {
   margin-bottom: 20px;
-}
-
-#room-controls input, #name-prompt input {
-  padding: 10px;
-  margin: 5px;
-  width: 200px;
 }
 
 #board {
   display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
-  gap: 2px;
-  margin: auto;
+  grid-template-columns: repeat(15, 30px);
+  gap: 1px;
+  margin: 20px auto;
 }
 
 #board div {
-  width: 40px;
-  height: 40px;
-  background-color: #ffffff;
+  width: 30px;
+  height: 30px;
+  background-color: white;
+  border: 1px solid #ccc;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #cccccc;
+  font-size: 24px;
   cursor: pointer;
 }
 
+#board div:hover {
+  background-color: #e0e0e0;
+}
+
 #status {
-  margin-top: 20px;
-}
-
-#game {
-  display: none;
-}
-
-div#winner-message {
-  font-size: 24px;
-  font-weight: bold;
-}
-
-div#player-names {
+  margin-top: 10px;
   font-size: 18px;
+}
+
+#player-names {
+  font-weight: bold;
   margin-bottom: 10px;
 }
