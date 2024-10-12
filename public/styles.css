@@ -5,40 +5,36 @@ body {
   align-items: center;
   height: 100vh;
   margin: 0;
+  background-color: #f0f0f0;
 }
 
 #app {
   text-align: center;
 }
 
-#room-controls, #name-input {
-  margin-bottom: 20px;
-}
-
 #board {
   display: grid;
   grid-template-columns: repeat(15, 40px);
   grid-template-rows: repeat(15, 40px);
-  gap: 5px;
-  margin: 0 auto;
+  margin: 20px auto;
 }
 
-.cell {
+#board div {
   width: 40px;
   height: 40px;
-  background-color: #f0f0f0;
+  border: 1px solid #000;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  border: 1px solid #ddd;
   font-size: 24px;
 }
 
-.cell:hover {
-  background-color: #e0e0e0;
+#status {
+  margin: 10px 0;
+  font-size: 18px;
 }
 
-#player-names {
-  margin-bottom: 10px;
+#players {
+  font-size: 16px;
 }

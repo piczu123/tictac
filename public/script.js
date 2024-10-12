@@ -8,7 +8,7 @@ const playerNameInput = document.getElementById('player-name');
 const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
-const playerNamesDiv = document.getElementById('player-names');
+const playersDiv = document.getElementById('players');
 
 let currentRoom;
 let playerSymbol;
@@ -18,9 +18,7 @@ submitNameButton.addEventListener('click', () => {
     playerName = playerNameInput.value.trim();
     if (playerName) {
         document.getElementById('name-input').style.display = 'none';
-        document.getElementById('room-controls').style.display = 'flex';
-    } else {
-        alert('Please enter your name.');
+        document.getElementById('room-controls').style.display = 'block';
     }
 });
 
@@ -43,7 +41,7 @@ joinRoomButton.addEventListener('click', () => {
 });
 
 socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created! Join using the same room name.`);
+    alert(`Room ${roomName} created! You can join using the same room name.`);
     document.getElementById('room-controls').style.display = 'none';
     gameDiv.style.display = 'block';
     initializeBoard();
@@ -52,14 +50,13 @@ socket.on('roomCreated', (roomName) => {
 socket.on('roomJoined', (roomName, players) => {
     alert(`Joined room ${roomName} as ${playerSymbol}`);
     document.getElementById('room-controls').style.display = 'none';
-    playerNamesDiv.innerText = `Players: ${players.map(player => player.name).join(' vs ')}`;
     gameDiv.style.display = 'block';
     initializeBoard();
 });
 
 socket.on('playerJoined', (playerName) => {
     statusDiv.innerText = `${playerName} joined the game!`;
-    playerNamesDiv.innerText = `Players: ${rooms[currentRoom].players.map(player => player.name).join(' vs ')}`;
+    updatePlayersList();
 });
 
 socket.on('startGame', () => {
@@ -73,7 +70,6 @@ function initializeBoard() {
             const cell = document.createElement('div');
             cell.dataset.x = i;
             cell.dataset.y = j;
-            cell.classList.add('cell');
             cell.addEventListener('click', () => makeMove(i, j));
             boardDiv.appendChild(cell);
         }
@@ -81,7 +77,9 @@ function initializeBoard() {
 }
 
 function makeMove(x, y) {
-    socket.emit('makeMove', currentRoom, x, y, playerSymbol);
+    if (playerSymbol && socket.connected) {
+        socket.emit('makeMove', currentRoom, x, y, playerSymbol);
+    }
 }
 
 socket.on('moveMade', (board, lastMove) => {
@@ -106,6 +104,12 @@ socket.on('gameOver', (winnerSymbol) => {
     boardDiv.style.pointerEvents = 'none';
 });
 
-socket.on('invalidRoom', (roomName) => {
-    alert(`Room "${roomName}" does not exist. Please try again.`);
-});
+function updatePlayersList() {
+    playersDiv.innerHTML = ''; // Clear the current list
+    const players = [...Object.values(socket.rooms)].filter(room => room.players).flat();
+    players.forEach(player => {
+        const playerElement = document.createElement('div');
+        playerElement.innerText = player.name;
+        playersDiv.appendChild(playerElement);
+    });
+}
