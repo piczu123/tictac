@@ -1,11 +1,13 @@
 const socket = io();
 let playerSymbol = '';
 
+// Create room button action
 document.getElementById('createRoomBtn').onclick = () => {
     const roomName = document.getElementById('roomName').value;
     socket.emit('createRoom', roomName);
 };
 
+// Join room button action
 document.getElementById('joinRoomBtn').onclick = () => {
     const roomName = document.getElementById('roomName').value;
     socket.emit('joinRoom', roomName);
@@ -15,12 +17,12 @@ document.getElementById('joinRoomBtn').onclick = () => {
 socket.on('gameState', (state) => {
     console.log('Received game state:', state);
     updateBoard(state.board);
-    document.getElementById('currentTurn').innerText = `Your Symbol: ${playerSymbol} - Current Turn: ${state.currentTurn}`;
+    document.getElementById('currentTurn').innerText = `Current Turn: ${state.currentTurn}`;
     document.getElementById('board').style.display = 'grid'; // Show the board
 
     if (state.players.length === 2) {
         playerSymbol = state.players[0] === socket.id ? 'X' : 'O'; // Assign symbols based on player position
-        document.getElementById('currentTurn').innerText = `Your Symbol: ${playerSymbol}`;
+        document.getElementById('currentTurn').innerText += ` - Your Symbol: ${playerSymbol}`;
     }
 });
 
@@ -31,17 +33,16 @@ function createBoard() {
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.addEventListener('click', () => {
-                // Emit the move to the server
-                socket.emit('makeMove', { roomName: document.getElementById('roomName').value, x: i, y: j, playerSymbol });
-            });
+            cell.classList.add('cell');
+            cell.dataset.x = i;
+            cell.dataset.y = j;
+            cell.onclick = () => handleCellClick(i, j);
             boardDiv.appendChild(cell);
         }
     }
 }
 
-// Update the board based on the state from the server
+// Update the board display
 function updateBoard(board) {
     const cells = document.querySelectorAll('.cell');
     cells.forEach(cell => cell.innerHTML = ''); // Clear previous symbols
@@ -60,6 +61,12 @@ function updateBoard(board) {
         const lastCell = cells[board.lastMove.x * 15 + board.lastMove.y];
         lastCell.classList.add('last-move'); // Highlight last move
     }
+}
+
+// Handle cell click
+function handleCellClick(x, y) {
+    const roomName = document.getElementById('roomName').value;
+    socket.emit('makeMove', { roomName, x, y });
 }
 
 // Handle game over

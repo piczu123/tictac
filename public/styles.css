@@ -18,15 +18,11 @@ body {
   justify-content: center;
   font-size: 24px;
   cursor: pointer;
+  position: relative; /* To position winning lines */
 }
 
 .cell:hover {
   background-color: #f0f0f0;
-}
-
-.winning-line {
-  position: absolute;
-  background-color: red;
 }
 
 .last-move {
@@ -40,4 +36,10 @@ body {
 #error {
   color: red;
   margin-top: 10px;
+}
+
+#gameOver {
+  color: red;
+  margin-top: 20px;
+  font-size: 24px;
 }

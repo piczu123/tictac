@@ -52,8 +52,10 @@ io.on('connection', (socket) => {
     });
 
     // Handle making a move
-    socket.on('makeMove', ({ roomName, x, y, playerSymbol }) => {
+    socket.on('makeMove', ({ roomName, x, y }) => {
         const room = rooms[roomName];
+        const playerSymbol = room.players[0] === socket.id ? 'X' : 'O';
+
         if (room && !room.gameOver && room.currentTurn === socket.id) {
             if (!room.board[x][y]) { // Ensure the cell is empty
                 room.board[x][y] = playerSymbol;
