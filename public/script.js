@@ -56,14 +56,14 @@ socket.on('updateTurn', (turn) => {
 });
 
 socket.on('gameOver', (winner) => {
-    document.getElementById('message').innerText = `Player ${winner} wins!`;
-    document.getElementById('board').style.display = 'none'; // Hide the board when the game is over
+    alert(`Game over! Player ${winner} wins!`);
+    document.getElementById('board').style.display = 'none'; // Hide the board after the game ends
 });
 
 // Create the game board
 function createBoard() {
     const boardDiv = document.getElementById('board');
-    boardDiv.innerHTML = ''; // Clear previous cells
+    boardDiv.innerHTML = ''; // Clear existing board
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
@@ -87,5 +87,10 @@ function updateBoard(board) {
 // Make a move in the game
 function makeMove(x, y) {
     const roomName = document.getElementById('roomName').value;
-    socket.emit('makeMove', { roomName, x, y });
+    const currentPlayer = document.getElementById('currentTurn').innerText.split(' ')[2]; // Get current player
+    if (currentPlayer === 'X' || currentPlayer === 'O') {
+        socket.emit('makeMove', { roomName, x, y });
+    } else {
+        alert("It's not your turn!");
+    }
 }
