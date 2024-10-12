@@ -10,6 +10,9 @@ app.use(express.static('public'));
 
 let rooms = {};
 
+// Bind to the port from the environment, or default to 3000 if not set
+const PORT = process.env.PORT || 3000;
+
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
@@ -98,6 +101,6 @@ const checkWin = (roomName, x, y, playerSymbol) => {
     }
 };
 
-server.listen(3000, () => {
-    console.log('Server is running on http://localhost:3000');
+server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
