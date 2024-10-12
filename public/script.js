@@ -1,84 +1,89 @@
 const socket = io();
 
-const createRoomBtn = document.getElementById('createRoomBtn');
-const joinRoomBtn = document.getElementById('joinRoomBtn');
-const roomNameInput = document.getElementById('roomName');
-const playerNameInput = document.getElementById('playerName');
-const gameContainer = document.getElementById('gameContainer');
-const currentRoomSpan = document.getElementById('currentRoom');
-const currentTurnSpan = document.getElementById('currentTurn');
+const createRoomButton = document.getElementById('create-room');
+const joinRoomButton = document.getElementById('join-room');
+const roomNameInput = document.getElementById('room-name');
+const playerNameInput = document.getElementById('player-name');
+const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
+const statusDiv = document.getElementById('status');
 
-createRoomBtn.addEventListener('click', () => {
-    const roomName = roomNameInput.value;
-    const playerName = playerNameInput.value;
+let currentRoom;
+let playerSymbol;
+
+createRoomButton.addEventListener('click', () => {
+    const roomName = roomNameInput.value.trim();
+    const playerName = playerNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('createRoom', roomName);
-        socket.emit('joinRoom', roomName, playerName);
+        currentRoom = roomName;
+        playerSymbol = 'X';
     }
 });
 
-joinRoomBtn.addEventListener('click', () => {
-    const roomName = roomNameInput.value;
-    const playerName = playerNameInput.value;
+joinRoomButton.addEventListener('click', () => {
+    const roomName = roomNameInput.value.trim();
+    const playerName = playerNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('joinRoom', roomName, playerName);
+        currentRoom = roomName;
+        playerSymbol = 'O';
     }
 });
 
 socket.on('roomCreated', (roomName) => {
-    currentRoomSpan.textContent = roomName;
-    gameContainer.classList.remove('hidden');
+    alert(`Room ${roomName} created! Join using the same room name.`);
 });
 
-socket.on('roomExists', () => {
-    alert('Room already exists. Please choose a different room name.');
-});
-
-socket.on('roomJoined', (roomName) => {
-    currentRoomSpan.textContent = roomName;
-    gameContainer.classList.remove('hidden');
+socket.on('roomJoined', (roomName, players) => {
+    alert(`Joined room ${roomName} as ${playerSymbol}`);
+    gameDiv.style.display = 'block';
     initializeBoard();
 });
 
 socket.on('playerJoined', (playerName) => {
-    alert(`${playerName} has joined the room!`);
+    statusDiv.innerText = `${playerName} joined the game!`;
 });
 
-socket.on('updateBoard', (board) => {
-    renderBoard(board);
-});
-
-socket.on('turnChange', (turn) => {
-    currentTurnSpan.textContent = turn;
-});
-
-socket.on('gameOver', (winner) => {
-    alert(`Game Over! Player ${winner} wins!`);
+socket.on('startGame', () => {
+    statusDiv.innerText = 'Game started!';
 });
 
 function initializeBoard() {
     boardDiv.innerHTML = '';
-    for (let row = 0; row < 15; row++) {
-        for (let col = 0; col < 15; col++) {
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            cell.addEventListener('click', () => {
-                socket.emit('makeMove', row, col);
-            });
+            cell.dataset.x = i;
+            cell.dataset.y = j;
+            cell.addEventListener('click', () => makeMove(i, j));
             boardDiv.appendChild(cell);
         }
     }
 }
 
-function renderBoard(board) {
-    const cells = document.querySelectorAll('.cell');
-    cells.forEach((cell) => {
-        const row = cell.dataset.row;
-        const col = cell.dataset.col;
-        cell.textContent = board[row][col] ? board[row][col] : '';
-        cell.className = `cell ${board[row][col]}`;
-    });
+function makeMove(x, y) {
+    socket.emit('makeMove', currentRoom, x, y, playerSymbol);
 }
+
+socket.on('moveMade', (board, lastMove) => {
+    updateBoard(board);
+    if (lastMove) {
+        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
+    }
+});
+
+function updateBoard(board) {
+    const cells = boardDiv.children;
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 15; j++) {
+            const cell = cells[i * 15 + j];
+            cell.innerText = board[i][j] ? board[i][j] : '';
+        }
+    }
+}
+
+socket.on('gameOver', (winnerSymbol) => {
+    statusDiv.innerText = `${winnerSymbol} wins!`;
+    boardDiv.style.pointerEvents = 'none';
+});

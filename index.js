@@ -1,101 +1,103 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
 app.use(express.static('public'));
 
-const rooms = {}; // Object to store room data
+let rooms = {};
 
 io.on('connection', (socket) => {
-    let currentRoom = null;
-    
+    console.log('A user connected:', socket.id);
+
     socket.on('createRoom', (roomName) => {
         if (!rooms[roomName]) {
-            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), turn: 'X' };
-            currentRoom = roomName;
-            socket.join(roomName);
-            socket.emit('roomCreated', roomName);
-        } else {
-            socket.emit('roomExists');
+            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), lastMove: null };
+            console.log(`Room created: ${roomName}`);
         }
+        socket.join(roomName);
+        socket.emit('roomCreated', roomName);
     });
 
     socket.on('joinRoom', (roomName, playerName) => {
         if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            rooms[roomName].players.push(playerName);
-            currentRoom = roomName;
+            rooms[roomName].players.push({ id: socket.id, name: playerName });
             socket.join(roomName);
             io.to(roomName).emit('playerJoined', playerName);
-            socket.emit('roomJoined', roomName);
-            io.to(roomName).emit('updateBoard', rooms[roomName].board);
+            socket.emit('roomJoined', roomName, rooms[roomName].players);
+            if (rooms[roomName].players.length === 2) {
+                io.to(roomName).emit('startGame');
+            }
         } else {
-            socket.emit('roomNotFound');
+            socket.emit('roomFull', roomName);
         }
     });
 
-    socket.on('makeMove', (row, col) => {
-        if (currentRoom && rooms[currentRoom]) {
-            const room = rooms[currentRoom];
-            if (!room.board[row][col] && room.turn) {
-                room.board[row][col] = room.turn;
-                const winner = checkWinner(room.board, room.turn);
-
-                if (winner) {
-                    io.to(currentRoom).emit('gameOver', winner);
-                    room.turn = null; // Game over
-                } else {
-                    room.turn = room.turn === 'X' ? 'O' : 'X'; // Switch turns
-                    io.to(currentRoom).emit('updateBoard', room.board);
-                    io.to(currentRoom).emit('turnChange', room.turn);
-                }
-            }
+    socket.on('makeMove', (roomName, x, y, playerSymbol) => {
+        const room = rooms[roomName];
+        if (room && room.board[x][y] === null) {
+            room.board[x][y] = playerSymbol;
+            room.lastMove = { x, y, playerSymbol };
+            io.to(roomName).emit('moveMade', room.board, room.lastMove);
+            checkWin(roomName, x, y, playerSymbol);
         }
     });
 
     socket.on('disconnect', () => {
-        if (currentRoom) {
-            const room = rooms[currentRoom];
-            if (room) {
-                room.players = room.players.filter((player) => player !== socket.id);
-                if (room.players.length === 0) {
-                    delete rooms[currentRoom]; // Remove empty room
-                }
+        console.log('User disconnected:', socket.id);
+        for (let room in rooms) {
+            rooms[room].players = rooms[room].players.filter(player => player.id !== socket.id);
+            if (rooms[room].players.length === 0) {
+                delete rooms[room];
             }
         }
     });
 });
 
-function checkWinner(board, player) {
-    // Check horizontal, vertical and diagonal
-    for (let r = 0; r < 15; r++) {
-        for (let c = 0; c < 15; c++) {
-            if (checkDirection(board, r, c, 1, 0, player) || // Horizontal
-                checkDirection(board, r, c, 0, 1, player) || // Vertical
-                checkDirection(board, r, c, 1, 1, player) || // Diagonal \
-                checkDirection(board, r, c, 1, -1, player)) { // Diagonal /
-                return player; // Winner found
+const checkWin = (roomName, x, y, playerSymbol) => {
+    const room = rooms[roomName];
+    // Check logic for winning (horizontal, vertical, diagonal)
+    const directions = [
+        { x: 1, y: 0 },  // Horizontal
+        { x: 0, y: 1 },  // Vertical
+        { x: 1, y: 1 },  // Diagonal \
+        { x: 1, y: -1 }  // Diagonal /
+    ];
+    for (let { x: dx, y: dy } of directions) {
+        let count = 1;
+
+        // Check in positive direction
+        for (let step = 1; step < 5; step++) {
+            const newX = x + step * dx;
+            const newY = y + step * dy;
+            if (room.board[newX]?.[newY] === playerSymbol) {
+                count++;
+            } else {
+                break;
             }
         }
-    }
-    return null; // No winner
-}
 
-function checkDirection(board, row, col, dRow, dCol, player) {
-    let count = 0;
-    for (let i = 0; i < 5; i++) {
-        const r = row + i * dRow;
-        const c = col + i * dCol;
-        if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== player) {
-            return false;
+        // Check in negative direction
+        for (let step = 1; step < 5; step++) {
+            const newX = x - step * dx;
+            const newY = y - step * dy;
+            if (room.board[newX]?.[newY] === playerSymbol) {
+                count++;
+            } else {
+                break;
+            }
         }
-        count++;
+
+        if (count >= 5) {
+            io.to(roomName).emit('gameOver', playerSymbol);
+            break;
+        }
     }
-    return count === 5;
-}
+};
 
 server.listen(3000, () => {
-    console.log('Server is running on port 3000');
+    console.log('Server is running on http://localhost:3000');
 });
