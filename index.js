@@ -67,8 +67,7 @@ io.on('connection', (socket) => {
 
     // Check for win conditions
     function checkWinCondition(room) {
-        // Implement win checking logic here (similar to previous)
-        const winner = checkForWinner(room.board); // Placeholder function
+        const winner = checkForWinner(room.board);
         if (winner) {
             room.gameOver = true;
             io.to(room.players[0]).emit('gameOver', winner);
@@ -76,10 +75,48 @@ io.on('connection', (socket) => {
         }
     }
 
-    // Placeholder function to check for winner
+    // Check for winner in the board
     function checkForWinner(board) {
-        // Implement your winning logic here
-        return null; // Change to return winner if found
+        // Check rows, columns, and diagonals for a winner
+        for (let i = 0; i < 15; i++) {
+            for (let j = 0; j < 15; j++) {
+                if (board[i][j]) {
+                    const playerSymbol = board[i][j];
+                    
+                    // Check horizontal
+                    if (j <= 10 && checkDirection(board, i, j, 0, 1, playerSymbol)) {
+                        return playerSymbol;
+                    }
+                    // Check vertical
+                    if (i <= 10 && checkDirection(board, i, j, 1, 0, playerSymbol)) {
+                        return playerSymbol;
+                    }
+                    // Check diagonal (top-left to bottom-right)
+                    if (i <= 10 && j <= 10 && checkDirection(board, i, j, 1, 1, playerSymbol)) {
+                        return playerSymbol;
+                    }
+                    // Check diagonal (bottom-left to top-right)
+                    if (i >= 4 && j <= 10 && checkDirection(board, i, j, -1, 1, playerSymbol)) {
+                        return playerSymbol;
+                    }
+                }
+            }
+        }
+        return null; // No winner found
+    }
+
+    // Helper function to check in a given direction
+    function checkDirection(board, startX, startY, stepX, stepY, playerSymbol) {
+        let count = 0;
+        for (let k = 0; k < 5; k++) {
+            const x = startX + stepX * k;
+            const y = startY + stepY * k;
+            if (x < 0 || x >= 15 || y < 0 || y >= 15 || board[x][y] !== playerSymbol) {
+                return false; // Break if out of bounds or not matching symbol
+            }
+            count++;
+        }
+        return count === 5; // Return true if we found 5 in a row
     }
 
     socket.on('disconnect', () => {
