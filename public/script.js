@@ -25,26 +25,31 @@ submitNameButton.addEventListener('click', () => {
     }
 });
 
+// Create room button action
 createRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('createRoom', roomName, playerName);
         currentRoom = roomName;
         playerSymbol = 'X';
+        joinRoomButton.disabled = true; // Disable the join button for the creator
     }
 });
 
+// Join room button action
 joinRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('joinRoom', roomName, playerName);
         currentRoom = roomName;
         playerSymbol = 'O';
+        createRoomButton.disabled = true; // Disable the create button for the joiner
     }
 });
 
+// Handle events from the server
 socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created!`);
+    alert(`Room ${roomName} created! Waiting for another player to join...`);
     gameDiv.style.display = 'block';
     initializeBoard();
 });
@@ -68,6 +73,7 @@ socket.on('roomExists', (roomName) => {
     alert(`Room ${roomName} already exists. Please choose a different name.`);
 });
 
+// Initialize game board
 function initializeBoard() {
     boardDiv.innerHTML = '';
     for (let i = 0; i < 15; i++) {
@@ -81,10 +87,12 @@ function initializeBoard() {
     }
 }
 
+// Handle making a move
 function makeMove(x, y) {
     socket.emit('makeMove', x, y, playerSymbol);
 }
 
+// Update the board when a move is made
 socket.on('moveMade', (board, lastMove) => {
     updateBoard(board);
     if (lastMove) {
@@ -92,18 +100,20 @@ socket.on('moveMade', (board, lastMove) => {
     }
 });
 
+// Function to update the game board display
 function updateBoard(board) {
     const cells = boardDiv.children;
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = cells[i * 15 + j];
-            cell.innerText = board[i][j] ? board[i][j] : '';
+            cell.innerText = board[i][j] || '';
         }
     }
 }
 
+// Handle game over
 socket.on('gameOver', (winnerSymbol) => {
     statusDiv.innerText = `${winnerSymbol} wins!`;
-    boardDiv.style.pointerEvents = 'none';
+    boardDiv.style.pointerEvents = 'none'; // Disable further moves
     socket.emit('endGame'); // Notify server that the game has ended
 });
