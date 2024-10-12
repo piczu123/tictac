@@ -9,16 +9,17 @@
 <body>
     <div id="app">
         <h1>Tic Tac Toe</h1>
-        <div id="player-name-prompt">
-            <input type="text" id="player-name" placeholder="Enter your name" />
-            <button id="set-name">Submit</button>
+        <div id="name-input" style="display: flex; flex-direction: column; align-items: center;">
+            <input type="text" id="player-name" placeholder="Your Name">
+            <button id="submit-name">Submit Name</button>
         </div>
         <div id="room-controls" style="display:none;">
-            <input type="text" id="room-name" placeholder="Room Name" />
+            <input type="text" id="room-name" placeholder="Room Name">
             <button id="create-room">Create Room</button>
             <button id="join-room">Join Room</button>
         </div>
         <div id="game" style="display:none;">
+            <div id="player-names"></div>
             <div id="board"></div>
             <div id="status"></div>
         </div>

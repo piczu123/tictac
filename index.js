@@ -10,18 +10,15 @@ app.use(express.static('public'));
 
 let rooms = {};
 
+// Bind to the port from the environment, or default to 3000 if not set
 const PORT = process.env.PORT || 3000;
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('createRoom', (roomName, playerName) => {
+    socket.on('createRoom', (roomName) => {
         if (!rooms[roomName]) {
-            rooms[roomName] = { 
-                players: [{ id: socket.id, name: playerName }], 
-                board: Array(15).fill(null).map(() => Array(15).fill(null)), 
-                lastMove: null 
-            };
+            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), lastMove: null };
             console.log(`Room created: ${roomName}`);
         }
         socket.join(roomName);
@@ -29,16 +26,20 @@ io.on('connection', (socket) => {
     });
 
     socket.on('joinRoom', (roomName, playerName) => {
-        if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            rooms[roomName].players.push({ id: socket.id, name: playerName });
-            socket.join(roomName);
-            io.to(roomName).emit('playerJoined', playerName);
-            socket.emit('roomJoined', roomName, rooms[roomName].players);
-            if (rooms[roomName].players.length === 2) {
-                io.to(roomName).emit('startGame');
+        if (rooms[roomName]) {
+            if (rooms[roomName].players.length < 2) {
+                rooms[roomName].players.push({ id: socket.id, name: playerName });
+                socket.join(roomName);
+                io.to(roomName).emit('playerJoined', playerName);
+                socket.emit('roomJoined', roomName, rooms[roomName].players);
+                if (rooms[roomName].players.length === 2) {
+                    io.to(roomName).emit('startGame');
+                }
+            } else {
+                socket.emit('roomFull', roomName);
             }
         } else {
-            socket.emit('roomFull', roomName);
+            socket.emit('invalidRoom', roomName);
         }
     });
 
@@ -65,6 +66,7 @@ io.on('connection', (socket) => {
 
 const checkWin = (roomName, x, y, playerSymbol) => {
     const room = rooms[roomName];
+    // Check logic for winning (horizontal, vertical, diagonal)
     const directions = [
         { x: 1, y: 0 },  // Horizontal
         { x: 0, y: 1 },  // Vertical
@@ -98,11 +100,11 @@ const checkWin = (roomName, x, y, playerSymbol) => {
 
         if (count >= 5) {
             io.to(roomName).emit('gameOver', playerSymbol);
-            break;
+            return;
         }
     }
 };
 
 server.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });

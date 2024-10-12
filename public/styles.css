@@ -1,78 +1,44 @@
 body {
   font-family: Arial, sans-serif;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
   margin: 0;
-  background-color: #f0f0f0;
 }
 
 #app {
   text-align: center;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-#player-name-prompt, #room-controls {
+#room-controls, #name-input {
   margin-bottom: 20px;
-}
-
-h1 {
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-input[type="text"] {
-  width: calc(100% - 20px);
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-button {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
-  color: white;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-button:hover {
-  background-color: #0056b3;
 }
 
 #board {
   display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  gap: 2px;
-  margin: 20px auto; /* Center the board */
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
+  gap: 5px;
+  margin: 0 auto;
 }
 
-#board div {
-  width: 30px;
-  height: 30px;
+.cell {
+  width: 40px;
+  height: 40px;
+  background-color: #f0f0f0;
   display: flex;
-  align-items: center;
   justify-content: center;
-  background-color: #eee;
-  border: 1px solid #ccc;
+  align-items: center;
   cursor: pointer;
-  font-size: 20px;
-  font-weight: bold;
+  border: 1px solid #ddd;
+  font-size: 24px;
 }
 
-#board div:hover {
-  background-color: #ddd;
+.cell:hover {
+  background-color: #e0e0e0;
 }
 
-#status {
-  margin-top: 10px;
-  font-size: 18px;
+#player-names {
+  margin-bottom: 10px;
 }
