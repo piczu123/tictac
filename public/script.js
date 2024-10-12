@@ -16,7 +16,6 @@ let currentRoom;
 let playerSymbol;
 let playerName;
 
-// Prompt for player's name
 submitNameButton.addEventListener('click', () => {
     playerName = playerNameInput.value.trim();
     if (playerName) {
@@ -25,7 +24,6 @@ submitNameButton.addEventListener('click', () => {
     }
 });
 
-// Create room button action
 createRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
     if (roomName && playerName) {
@@ -34,7 +32,6 @@ createRoomButton.addEventListener('click', () => {
     }
 });
 
-// Join room button action
 joinRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
     if (roomName && playerName) {
@@ -43,7 +40,6 @@ joinRoomButton.addEventListener('click', () => {
     }
 });
 
-// Handle events from the server
 socket.on('roomCreated', (roomName) => {
     alert(`Room ${roomName} created! Waiting for another player to join...`);
     gameDiv.style.display = 'block';
@@ -56,55 +52,42 @@ socket.on('roomJoined', (roomName, players) => {
     initializeBoard();
 });
 
-socket.on('playerJoined', (playerName) => {
-    statusDiv.innerText = `${playerName} joined the game!`;
+socket.on('playerJoined', (name) => {
+    statusDiv.innerText = `${name} joined the game!`;
 });
 
-socket.on('startGame', ({ firstPlayer, turn }) => {
-    statusDiv.innerText = `${firstPlayer.name} starts as ${turn}. Game started!`;
-    playerSymbol = turn;
-    boardDiv.style.pointerEvents = turn === playerSymbol ? 'auto' : 'none'; // Enable moves for the starting player
-    playerNamesDiv.innerText = `Players: ${firstPlayer.name} (${turn}) vs ${turn === 'X' ? 'O' : 'X'}`;
+socket.on('startGame', ({ players, firstPlayer }) => {
+    const [playerX, playerO] = firstPlayer.symbol === 'X' ? players : players.reverse();
+    playerNamesDiv.innerText = `Players: ${playerX.name} (X) vs ${playerO.name} (O)`;
+    playerSymbol = firstPlayer.symbol;
+    statusDiv.innerText = `Game started! ${firstPlayer.symbol} goes first.`;
+    initializeBoard();
 });
 
-// Update the board when a move is made
-socket.on('moveMade', (board, lastMove) => {
-    updateBoard(board);
-    if (lastMove) {
-        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
-    }
-});
-
-// Handle game over
-socket.on('gameOver', (winnerSymbol) => {
-    statusDiv.innerText = `${winnerSymbol} wins!`;
-    boardDiv.style.pointerEvents = 'none'; // Disable further moves
-    socket.emit('endGame'); // Notify server that the game has ended
-});
-
-// Initialize game board
 function initializeBoard() {
     boardDiv.innerHTML = '';
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
+            cell.classList.add('cell');
             cell.dataset.x = i;
             cell.dataset.y = j;
             cell.addEventListener('click', () => makeMove(i, j));
-            cell.classList.add('cell');
             boardDiv.appendChild(cell);
         }
     }
 }
 
-// Send move to server
 function makeMove(x, y) {
     if (playerSymbol) {
         socket.emit('makeMove', x, y, playerSymbol);
     }
 }
 
-// Update game board
+socket.on('moveMade', (board) => {
+    updateBoard(board);
+});
+
 function updateBoard(board) {
     const cells = boardDiv.getElementsByClassName('cell');
     for (let i = 0; i < 15; i++) {
@@ -114,3 +97,8 @@ function updateBoard(board) {
         }
     }
 }
+
+socket.on('gameOver', (winnerSymbol) => {
+    statusDiv.innerText = `${winnerSymbol} wins!`;
+    boardDiv.style.pointerEvents = 'none';
+});

@@ -30,7 +30,7 @@ body {
   margin: auto;
 }
 
-#board div {
+.cell {
   width: 40px;
   height: 40px;
   background-color: #ffffff;
@@ -42,17 +42,11 @@ body {
   font-size: 24px;
 }
 
-#board div:hover {
+.cell:hover {
   background-color: #eaeaea;
 }
 
-#status {
+#status, #player-names {
   margin-top: 20px;
   font-size: 18px;
-}
-
-#player-names {
-  margin-top: 10px;
-  font-size: 20px;
-  font-weight: bold;
 }
