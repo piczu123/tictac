@@ -16,6 +16,7 @@ document.getElementById('joinRoomBtn').onclick = () => {
 // Listen for game state updates from the server
 socket.on('gameState', (state) => {
     console.log('Received game state:', state);
+    if (!document.getElementById('board').hasChildNodes()) createBoard(); // Create board if not already created
     updateBoard(state.board);
     document.getElementById('currentTurn').innerText = `Current Turn: ${state.currentTurn}`;
     document.getElementById('board').style.display = 'grid'; // Show the board
@@ -29,7 +30,6 @@ socket.on('gameState', (state) => {
 // Create board function
 function createBoard() {
     const boardDiv = document.getElementById('board');
-    boardDiv.innerHTML = ''; // Clear previous board
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
