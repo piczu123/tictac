@@ -30,7 +30,7 @@ body {
   margin: auto;
 }
 
-.cell {
+#board div {
   width: 40px;
   height: 40px;
   background-color: #ffffff;
@@ -39,14 +39,22 @@ body {
   justify-content: center;
   border: 1px solid #cccccc;
   cursor: pointer;
-  font-size: 24px;
 }
 
-.cell:hover {
-  background-color: #eaeaea;
-}
-
-#status, #player-names {
+#status {
   margin-top: 20px;
+}
+
+#game {
+  display: none;
+}
+
+div#winner-message {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+div#player-names {
   font-size: 18px;
+  margin-bottom: 10px;
 }
