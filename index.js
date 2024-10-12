@@ -6,113 +6,89 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+const PORT = process.env.PORT || 3000;
+
+let rooms = {};
+
 app.use(express.static('public'));
 
-const rooms = {};
+const checkWin = (board, x, y, playerSymbol) => {
+    // Check all possible win directions
+    const directions = [
+        [[0, 1], [0, -1]], // Horizontal
+        [[1, 0], [-1, 0]], // Vertical
+        [[1, 1], [-1, -1]], // Diagonal \
+        [[1, -1], [-1, 1]]  // Diagonal /
+    ];
+    
+    for (const direction of directions) {
+        let count = 1;
+
+        for (const [dx, dy] of direction) {
+            let nx = x + dx;
+            let ny = y + dy;
+
+            while (nx >= 0 && ny >= 0 && nx < 15 && ny < 15 && board[nx][ny] === playerSymbol) {
+                count++;
+                nx += dx;
+                ny += dy;
+            }
+        }
+
+        if (count >= 5) return true;
+    }
+
+    return false;
+};
 
 io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    console.log('New client connected');
 
     socket.on('createRoom', (roomName) => {
-        if (!rooms[roomName]) {
-            rooms[roomName] = {
-                players: [],
-                board: Array.from({ length: 15 }, () => Array(15).fill(null)),
-                currentTurn: null,
-                lastMove: null,
-            };
-            console.log('Room created:', roomName);
-        }
+        rooms[roomName] = {
+            players: [socket.id],
+            board: Array(15).fill(null).map(() => Array(15).fill(null)),
+            currentTurn: 'X',
+            lastMove: null,
+        };
         socket.join(roomName);
-        rooms[roomName].players.push(socket.id);
-        if (rooms[roomName].players.length === 1) {
-            rooms[roomName].currentTurn = socket.id; // Set first player turn
-        }
-        io.to(socket.id).emit('gameState', rooms[roomName]);
+        console.log(`Room created: ${roomName}`);
+        socket.emit('gameState', rooms[roomName]);
     });
 
     socket.on('joinRoom', (roomName) => {
         if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            socket.join(roomName);
             rooms[roomName].players.push(socket.id);
-            io.to(socket.id).emit('gameState', rooms[roomName]);
+            socket.join(roomName);
+            console.log(`Player joined room: ${roomName}`);
             io.to(roomName).emit('gameState', rooms[roomName]);
         } else {
-            socket.emit('error', 'Room is full or does not exist.');
+            socket.emit('error', 'Room does not exist or is full');
         }
     });
 
     socket.on('makeMove', ({ roomName, x, y, playerSymbol }) => {
         const room = rooms[roomName];
-        if (room && room.board[x][y] === null && room.currentTurn === socket.id) {
-            room.board[x][y] = playerSymbol; // Update board with player symbol
-            room.lastMove = { x, y };
-            room.currentTurn = room.players.find(p => p !== socket.id); // Switch turn
-            io.to(roomName).emit('gameState', room);
-
-            // Check for win after the move
+        if (room && room.board[x][y] === null && room.currentTurn === playerSymbol) {
+            room.board[x][y] = playerSymbol;
+            room.lastMove = { x, y, playerSymbol }; // Save the last move
+            room.currentTurn = playerSymbol === 'X' ? 'O' : 'X'; // Swap turns
+            
+            // Check for a win
             if (checkWin(room.board, x, y, playerSymbol)) {
                 io.to(roomName).emit('gameOver', playerSymbol);
-                // You can also send the winning cells here if needed
-            }
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        for (const roomName in rooms) {
-            const room = rooms[roomName];
-            room.players = room.players.filter(id => id !== socket.id);
-            if (room.players.length === 0) {
-                delete rooms[roomName]; // Remove empty rooms
             } else {
                 io.to(roomName).emit('gameState', room);
             }
         }
     });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+        // Handle player disconnect logic if needed
+    });
 });
 
-// Check win condition
-function checkWin(board, x, y, playerSymbol) {
-    const directions = [
-        { x: 1, y: 0 }, // Horizontal
-        { x: 0, y: 1 }, // Vertical
-        { x: 1, y: 1 }, // Diagonal \
-        { x: 1, y: -1 }, // Diagonal /
-    ];
-
-    for (const { x: dx, y: dy } of directions) {
-        let count = 1;
-
-        // Check one direction
-        for (let step = 1; step < 5; step++) {
-            const newX = x + dx * step;
-            const newY = y + dy * step;
-            if (newX >= 0 && newX < 15 && newY >= 0 && newY < 15 && board[newX][newY] === playerSymbol) {
-                count++;
-            } else {
-                break;
-            }
-        }
-
-        // Check the opposite direction
-        for (let step = 1; step < 5; step++) {
-            const newX = x - dx * step;
-            const newY = y - dy * step;
-            if (newX >= 0 && newX < 15 && newY >= 0 && newY < 15 && board[newX][newY] === playerSymbol) {
-                count++;
-            } else {
-                break;
-            }
-        }
-
-        if (count >= 5) {
-            return true; // Win condition met
-        }
-    }
-    return false; // No win
-}
-
-server.listen(3000, () => {
-    console.log('Server is running on port 3000');
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
