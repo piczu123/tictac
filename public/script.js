@@ -11,6 +11,7 @@ document.getElementById('joinRoomBtn').onclick = () => {
     socket.emit('joinRoom', roomName);
 };
 
+// Listen for game state updates from the server
 socket.on('gameState', (state) => {
     console.log('Received game state:', state);
     updateBoard(state.board);
@@ -40,6 +41,7 @@ function createBoard() {
     }
 }
 
+// Update the board based on the state from the server
 function updateBoard(board) {
     const cells = document.querySelectorAll('.cell');
     board.forEach((row, x) => {
@@ -127,3 +129,8 @@ function findWinningCells(winner) {
 
 // Create the board on page load
 createBoard();
+
+// Handle error messages from the server
+socket.on('error', (message) => {
+    alert(message); // Display the error message to the player
+});
