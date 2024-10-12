@@ -20,6 +20,7 @@ body {
   grid-template-columns: repeat(15, 40px);
   grid-template-rows: repeat(15, 40px);
   margin: 0 auto;
+  position: relative;
 }
 
 .cell {
@@ -40,6 +41,12 @@ body {
 
 .cell.last-move {
   background-color: #ffeb3b; /* Highlight last move */
+}
+
+.winning-line {
+  position: absolute;
+  background-color: red;
+  z-index: 1;
 }
 
 #currentTurn {
