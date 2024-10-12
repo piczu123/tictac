@@ -10,14 +10,13 @@ const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
 const roomControlsDiv = document.getElementById('room-controls');
 const namePromptDiv = document.getElementById('name-prompt');
-const playerNamesDiv = document.createElement('div'); // Display player names
+const playerNamesDiv = document.getElementById('player-names');
 
 let currentRoom;
 let playerSymbol;
 let playerName;
 
-gameDiv.insertBefore(playerNamesDiv, boardDiv); // Add player names above the board
-
+// Prompt for player's name
 submitNameButton.addEventListener('click', () => {
     playerName = playerNameInput.value.trim();
     if (playerName) {
@@ -31,6 +30,7 @@ createRoomButton.addEventListener('click', () => {
     if (roomName && playerName) {
         socket.emit('createRoom', roomName, playerName);
         currentRoom = roomName;
+        playerSymbol = 'X';
     }
 });
 
@@ -39,41 +39,31 @@ joinRoomButton.addEventListener('click', () => {
     if (roomName && playerName) {
         socket.emit('joinRoom', roomName, playerName);
         currentRoom = roomName;
+        playerSymbol = 'O';
     }
 });
 
 socket.on('roomCreated', (roomName) => {
-    roomControlsDiv.style.display = 'none';
-    gameDiv.style.display = 'block';
-    initializeBoard();
-    statusDiv.innerText = 'Waiting for another player to join...';
+    alert(`Room ${roomName} created! Waiting for an opponent...`);
 });
 
-socket.on('roomExists', () => {
-    alert('Room name already exists. Please choose another name.');
-});
-
-socket.on('roomFull', () => {
-    alert('This room is already full.');
-});
-
-socket.on('startGame', ({ players, firstPlayer }) => {
+socket.on('roomJoined', (roomName, players) => {
+    alert(`Joined room ${roomName} as ${playerSymbol}`);
     gameDiv.style.display = 'block';
     playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
-    statusDiv.innerText = `${firstPlayer.name} goes first!`;
-    playerSymbol = firstPlayer.id === socket.id ? 'X' : 'O';
+    initializeBoard();
 });
 
-socket.on('moveMade', (board) => {
-    updateBoard(board);
+socket.on('playerJoined', (playerName) => {
+    statusDiv.innerText = `${playerName} joined the game!`;
+    gameDiv.style.display = 'block';
+    socket.emit('requestGameStart', currentRoom);
 });
 
-socket.on('updatePlayerNames', (players) => {
-    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1]?.name || 'Waiting...'} (O)`;
-});
-
-socket.on('waitingForPlayer', () => {
-    statusDiv.innerText = 'Waiting for another player to join...';
+socket.on('startGame', (players) => {
+    gameDiv.style.display = 'block';
+    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
+    statusDiv.innerText = `Game started! Waiting for the first move...`;
 });
 
 function initializeBoard() {
@@ -90,10 +80,15 @@ function initializeBoard() {
 }
 
 function makeMove(x, y) {
-    if (playerSymbol) {
-        socket.emit('makeMove', x, y, playerSymbol);
-    }
+    socket.emit('makeMove', x, y, playerSymbol);
 }
+
+socket.on('moveMade', (board, lastMove, players) => {
+    updateBoard(board);
+    if (lastMove) {
+        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} (${players[lastMove.playerSymbol === 'X' ? 0 : 1].name}) at (${lastMove.x}, ${lastMove.y})`;
+    }
+});
 
 function updateBoard(board) {
     const cells = boardDiv.children;
