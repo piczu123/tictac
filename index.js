@@ -18,7 +18,11 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', (roomName) => {
         if (!rooms[roomName]) {
-            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), lastMove: null };
+            rooms[roomName] = { 
+                players: [], 
+                board: Array(15).fill(null).map(() => Array(15).fill(null)), 
+                lastMove: null 
+            };
             console.log(`Room created: ${roomName}`);
         }
         socket.join(roomName);
@@ -32,8 +36,7 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('playerJoined', playerName);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
-                const firstSymbol = Math.random() < 0.5 ? 'X' : 'O';
-                io.to(roomName).emit('startGame', firstSymbol);
+                io.to(roomName).emit('startGame');
             }
         } else {
             socket.emit('roomFull', roomName);
@@ -63,7 +66,6 @@ io.on('connection', (socket) => {
 
 const checkWin = (roomName, x, y, playerSymbol) => {
     const room = rooms[roomName];
-    // Check logic for winning (horizontal, vertical, diagonal)
     const directions = [
         { x: 1, y: 0 },  // Horizontal
         { x: 0, y: 1 },  // Vertical

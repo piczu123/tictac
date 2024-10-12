@@ -9,22 +9,11 @@
 <body>
     <div id="app">
         <h1>Tic Tac Toe</h1>
-        <div id="name-prompt">
+        <div id="room-controls">
+            <input type="text" id="room-name" placeholder="Room Name">
             <input type="text" id="player-name" placeholder="Your Name">
-            <button id="set-name">Set Name</button>
-        </div>
-        <div id="room-controls" style="display:none;">
-            <h2>Create or Join a Room</h2>
-            <div>
-                <h3>Create Room</h3>
-                <input type="text" id="create-room-name" placeholder="Room Name">
-                <button id="create-room">Create Room</button>
-            </div>
-            <div>
-                <h3>Join Room</h3>
-                <input type="text" id="join-room-name" placeholder="Room Name">
-                <button id="join-room">Join Room</button>
-            </div>
+            <button id="create-room">Create Room</button>
+            <button id="join-room">Join Room</button>
         </div>
         <div id="game" style="display:none;">
             <div id="board"></div>
