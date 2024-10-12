@@ -32,8 +32,13 @@ io.on('connection', (socket) => {
         socket.join(roomName);
         currentRoom = roomName; // Set the current room for this socket
         playerName = name; // Store the player's name
+        rooms[roomName].players[0] = { id: socket.id, name }; // Save player details
         socket.emit('roomCreated', roomName);
-        socket.emit('startGame');  // Emit to the creator that the game should start
+        if (rooms[roomName].players.length === 2) {
+            const firstPlayerIndex = Math.floor(Math.random() * 2); // Randomly choose first player
+            const firstPlayer = rooms[roomName].players[firstPlayerIndex];
+            io.to(roomName).emit('startGame', firstPlayer); // Notify players who starts first
+        }
     });
 
     socket.on('joinRoom', (roomName, name) => {
@@ -45,7 +50,9 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('playerJoined', name);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
-                io.to(roomName).emit('startGame');
+                const firstPlayerIndex = Math.floor(Math.random() * 2); // Randomly choose first player
+                const firstPlayer = rooms[roomName].players[firstPlayerIndex];
+                io.to(roomName).emit('startGame', firstPlayer); // Notify players who starts first
             }
         } else {
             socket.emit('roomFull', roomName);
@@ -61,7 +68,7 @@ io.on('connection', (socket) => {
             // Switch turn
             room.turn = playerSymbol === 'X' ? 'O' : 'X';
 
-            io.to(currentRoom).emit('moveMade', room.board, room.lastMove, room.players);
+            io.to(currentRoom).emit('moveMade', room.board, room.lastMove);
             checkWin(currentRoom, x, y, playerSymbol);
         }
     });
@@ -113,7 +120,7 @@ const checkWin = (roomName, x, y, playerSymbol) => {
 
         if (count >= 5) {
             io.to(roomName).emit('gameOver', playerSymbol);
-            break;
+            return;
         }
     }
 };
