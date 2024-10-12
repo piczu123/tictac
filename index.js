@@ -25,14 +25,14 @@ io.on('connection', (socket) => {
                 players: [{ id: socket.id, name }], // Store the player in the room
                 board: Array(15).fill(null).map(() => Array(15).fill(null)), 
                 lastMove: null,
-                turn: 'X' // First turn starts with 'X'
+                turn: null, // Initially, no player is set to move
+                gameStarted: false // Indicate that the game has not started
             };
             console.log(`Room created: ${roomName}`);
             socket.join(roomName);
             currentRoom = roomName; // Set the current room for this socket
             playerName = name; // Store the player's name
             socket.emit('roomCreated', roomName);
-            socket.emit('startGame', { name: playerName });
         } else {
             socket.emit('roomExists', roomName); // Notify client that the room exists
         }
@@ -46,8 +46,16 @@ io.on('connection', (socket) => {
             playerName = name; // Store the player's name
             io.to(roomName).emit('playerJoined', name);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
+
+            // If two players are now in the room, start the game
             if (rooms[roomName].players.length === 2) {
-                io.to(roomName).emit('startGame', { name: playerName });
+                const firstPlayerIndex = Math.floor(Math.random() * 2); // Randomly select first player
+                rooms[roomName].turn = firstPlayerIndex === 0 ? 'X' : 'O';
+                rooms[roomName].gameStarted = true;
+                io.to(roomName).emit('startGame', {
+                    firstPlayer: rooms[roomName].players[firstPlayerIndex],
+                    turn: rooms[roomName].turn
+                });
             }
         } else {
             socket.emit('roomFull', roomName);
@@ -56,7 +64,7 @@ io.on('connection', (socket) => {
 
     socket.on('makeMove', (x, y, playerSymbol) => {
         const room = rooms[currentRoom];
-        if (room && room.board[x][y] === null && room.turn === playerSymbol) {
+        if (room && room.board[x][y] === null && room.gameStarted && room.turn === playerSymbol) {
             room.board[x][y] = playerSymbol;
             room.lastMove = { x, y, playerSymbol };
 

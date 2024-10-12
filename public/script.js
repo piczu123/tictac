@@ -31,8 +31,6 @@ createRoomButton.addEventListener('click', () => {
     if (roomName && playerName) {
         socket.emit('createRoom', roomName, playerName);
         currentRoom = roomName;
-        playerSymbol = 'X';
-        joinRoomButton.disabled = true; // Disable the join button for the creator
     }
 });
 
@@ -42,8 +40,6 @@ joinRoomButton.addEventListener('click', () => {
     if (roomName && playerName) {
         socket.emit('joinRoom', roomName, playerName);
         currentRoom = roomName;
-        playerSymbol = 'O';
-        createRoomButton.disabled = true; // Disable the create button for the joiner
     }
 });
 
@@ -55,7 +51,7 @@ socket.on('roomCreated', (roomName) => {
 });
 
 socket.on('roomJoined', (roomName, players) => {
-    alert(`Joined room ${roomName} as ${playerSymbol}`);
+    alert(`Joined room ${roomName}`);
     gameDiv.style.display = 'block';
     initializeBoard();
 });
@@ -64,13 +60,26 @@ socket.on('playerJoined', (playerName) => {
     statusDiv.innerText = `${playerName} joined the game!`;
 });
 
-socket.on('startGame', (firstPlayer) => {
-    statusDiv.innerText = 'Game started! Your turn: ' + playerSymbol;
-    playerNamesDiv.innerText = `Players: ${firstPlayer.name} (X) vs ${currentRoom.players.find(p => p.name !== firstPlayer.name).name} (O)`;
+socket.on('startGame', ({ firstPlayer, turn }) => {
+    statusDiv.innerText = `${firstPlayer.name} starts as ${turn}. Game started!`;
+    playerSymbol = turn;
+    boardDiv.style.pointerEvents = turn === playerSymbol ? 'auto' : 'none'; // Enable moves for the starting player
+    playerNamesDiv.innerText = `Players: ${firstPlayer.name} (${turn}) vs ${turn === 'X' ? 'O' : 'X'}`;
 });
 
-socket.on('roomExists', (roomName) => {
-    alert(`Room ${roomName} already exists. Please choose a different name.`);
+// Update the board when a move is made
+socket.on('moveMade', (board, lastMove) => {
+    updateBoard(board);
+    if (lastMove) {
+        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
+    }
+});
+
+// Handle game over
+socket.on('gameOver', (winnerSymbol) => {
+    statusDiv.innerText = `${winnerSymbol} wins!`;
+    boardDiv.style.pointerEvents = 'none'; // Disable further moves
+    socket.emit('endGame'); // Notify server that the game has ended
 });
 
 // Initialize game board
@@ -82,27 +91,22 @@ function initializeBoard() {
             cell.dataset.x = i;
             cell.dataset.y = j;
             cell.addEventListener('click', () => makeMove(i, j));
+            cell.classList.add('cell');
             boardDiv.appendChild(cell);
         }
     }
 }
 
-// Handle making a move
+// Send move to server
 function makeMove(x, y) {
-    socket.emit('makeMove', x, y, playerSymbol);
+    if (playerSymbol) {
+        socket.emit('makeMove', x, y, playerSymbol);
+    }
 }
 
-// Update the board when a move is made
-socket.on('moveMade', (board, lastMove) => {
-    updateBoard(board);
-    if (lastMove) {
-        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
-    }
-});
-
-// Function to update the game board display
+// Update game board
 function updateBoard(board) {
-    const cells = boardDiv.children;
+    const cells = boardDiv.getElementsByClassName('cell');
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = cells[i * 15 + j];
@@ -110,10 +114,3 @@ function updateBoard(board) {
         }
     }
 }
-
-// Handle game over
-socket.on('gameOver', (winnerSymbol) => {
-    statusDiv.innerText = `${winnerSymbol} wins!`;
-    boardDiv.style.pointerEvents = 'none'; // Disable further moves
-    socket.emit('endGame'); // Notify server that the game has ended
-});
