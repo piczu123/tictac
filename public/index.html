@@ -4,16 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
-    <title>Tic Tac Toe Multiplayer</title>
+    <title>Tic Tac Toe</title>
 </head>
 <body>
-    <div id="game-container">
-        <h1>Tic Tac Toe</h1>
-        <div id="board"></div>
-        <input type="text" id="room-name" placeholder="Enter Room Name">
-        <input type="text" id="player-name" placeholder="Enter Your Name">
-        <button id="join-button">Join Room</button>
-        <div id="status"></div>
+    <div class="container">
+        <h1>Tic Tac Toe Multiplayer</h1>
+        <input type="text" id="roomName" placeholder="Room Name">
+        <input type="text" id="playerName" placeholder="Your Name">
+        <button id="createRoomBtn">Create Room</button>
+        <button id="joinRoomBtn">Join Room</button>
+        <div id="gameContainer" class="hidden">
+            <h2>Game Room: <span id="currentRoom"></span></h2>
+            <div id="board" class="board"></div>
+            <p>Current Turn: <span id="currentTurn"></span></p>
+        </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>

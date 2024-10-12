@@ -1,125 +1,101 @@
-const express = require("express");
-const http = require("http");
-const socketIo = require("socket.io");
-
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-const rooms = {}; // Store room data
+app.use(express.static('public'));
 
-// Serve static files from the public directory
-app.use(express.static("public"));
+const rooms = {}; // Object to store room data
 
-// Handle socket connections
-io.on("connection", (socket) => {
-    console.log("A user connected");
-
-    socket.on("joinRoom", ({ roomName, playerName }) => {
-        socket.join(roomName);
-
-        // Initialize the room if it doesn't exist
+io.on('connection', (socket) => {
+    let currentRoom = null;
+    
+    socket.on('createRoom', (roomName) => {
         if (!rooms[roomName]) {
-            rooms[roomName] = {
-                players: [],
-                board: Array(15).fill(null).map(() => Array(15).fill(null)),
-                currentPlayer: null,
-                winner: null
-            };
+            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), turn: 'X' };
+            currentRoom = roomName;
+            socket.join(roomName);
+            socket.emit('roomCreated', roomName);
+        } else {
+            socket.emit('roomExists');
         }
-
-        const room = rooms[roomName];
-        room.players.push(playerName);
-        
-        // Set the first player as the current player
-        if (room.players.length === 1) {
-            room.currentPlayer = playerName;
-        }
-
-        // Notify other players about the new player
-        socket.to(roomName).emit("playerJoined", playerName);
-        
-        // Emit current room state to the new player
-        socket.emit("roomData", { players: room.players, board: room.board });
     });
 
-    socket.on("makeMove", ({ roomName, x, y }) => {
-        const room = rooms[roomName];
-        if (!room) return; // Room must exist
-        if (room.winner) return; // Ignore moves if there's already a winner
+    socket.on('joinRoom', (roomName, playerName) => {
+        if (rooms[roomName] && rooms[roomName].players.length < 2) {
+            rooms[roomName].players.push(playerName);
+            currentRoom = roomName;
+            socket.join(roomName);
+            io.to(roomName).emit('playerJoined', playerName);
+            socket.emit('roomJoined', roomName);
+            io.to(roomName).emit('updateBoard', rooms[roomName].board);
+        } else {
+            socket.emit('roomNotFound');
+        }
+    });
 
-        // Proceed with handling the move
-        if (room.board[x][y] === null) { // Check if the cell is empty
-            room.board[x][y] = room.currentPlayer; // Mark the cell with the current player's symbol
-            
-            // Check for a winner after the move
-            const winner = checkWinner(room.board);
-            if (winner) {
-                room.winner = winner; // Set the winner
-                io.to(roomName).emit("gameOver", { winner }); // Notify players about the winner
-            } else {
-                // Switch players
-                room.currentPlayer = room.players[(room.players.indexOf(room.currentPlayer) + 1) % room.players.length];
+    socket.on('makeMove', (row, col) => {
+        if (currentRoom && rooms[currentRoom]) {
+            const room = rooms[currentRoom];
+            if (!room.board[row][col] && room.turn) {
+                room.board[row][col] = room.turn;
+                const winner = checkWinner(room.board, room.turn);
+
+                if (winner) {
+                    io.to(currentRoom).emit('gameOver', winner);
+                    room.turn = null; // Game over
+                } else {
+                    room.turn = room.turn === 'X' ? 'O' : 'X'; // Switch turns
+                    io.to(currentRoom).emit('updateBoard', room.board);
+                    io.to(currentRoom).emit('turnChange', room.turn);
+                }
             }
-
-            // Update the board for all players
-            io.to(roomName).emit("updateBoard", { board: room.board });
         }
     });
 
-    socket.on("disconnect", () => {
-        console.log("A user disconnected");
-        // Handle player disconnect logic if necessary
+    socket.on('disconnect', () => {
+        if (currentRoom) {
+            const room = rooms[currentRoom];
+            if (room) {
+                room.players = room.players.filter((player) => player !== socket.id);
+                if (room.players.length === 0) {
+                    delete rooms[currentRoom]; // Remove empty room
+                }
+            }
+        }
     });
 });
 
-// Function to check for a winner
-function checkWinner(board) {
-    // Check for horizontal, vertical, and diagonal wins
-    for (let i = 0; i < 15; i++) {
-        for (let j = 0; j < 15; j++) {
-            const player = board[i][j];
-            if (player) {
-                // Check horizontal
-                if (j + 4 < 15 && 
-                    player === board[i][j + 1] && 
-                    player === board[i][j + 2] && 
-                    player === board[i][j + 3] && 
-                    player === board[i][j + 4]) {
-                    return player;
-                }
-                // Check vertical
-                if (i + 4 < 15 && 
-                    player === board[i + 1][j] && 
-                    player === board[i + 2][j] && 
-                    player === board[i + 3][j] && 
-                    player === board[i + 4][j]) {
-                    return player;
-                }
-                // Check diagonal (down-right)
-                if (i + 4 < 15 && j + 4 < 15 && 
-                    player === board[i + 1][j + 1] && 
-                    player === board[i + 2][j + 2] && 
-                    player === board[i + 3][j + 3] && 
-                    player === board[i + 4][j + 4]) {
-                    return player;
-                }
-                // Check diagonal (down-left)
-                if (i + 4 < 15 && j - 4 >= 0 && 
-                    player === board[i + 1][j - 1] && 
-                    player === board[i + 2][j - 2] && 
-                    player === board[i + 3][j - 3] && 
-                    player === board[i + 4][j - 4]) {
-                    return player;
-                }
+function checkWinner(board, player) {
+    // Check horizontal, vertical and diagonal
+    for (let r = 0; r < 15; r++) {
+        for (let c = 0; c < 15; c++) {
+            if (checkDirection(board, r, c, 1, 0, player) || // Horizontal
+                checkDirection(board, r, c, 0, 1, player) || // Vertical
+                checkDirection(board, r, c, 1, 1, player) || // Diagonal \
+                checkDirection(board, r, c, 1, -1, player)) { // Diagonal /
+                return player; // Winner found
             }
         }
     }
     return null; // No winner
 }
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+function checkDirection(board, row, col, dRow, dCol, player) {
+    let count = 0;
+    for (let i = 0; i < 5; i++) {
+        const r = row + i * dRow;
+        const c = col + i * dCol;
+        if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== player) {
+            return false;
+        }
+        count++;
+    }
+    return count === 5;
+}
+
+server.listen(3000, () => {
+    console.log('Server is running on port 3000');
 });
