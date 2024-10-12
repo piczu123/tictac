@@ -23,6 +23,7 @@ socket.on('gameState', (state) => {
     }
 });
 
+// Create board function
 function createBoard() {
     const boardDiv = document.getElementById('board');
     boardDiv.innerHTML = ''; // Clear previous board
@@ -47,7 +48,19 @@ function updateBoard(board) {
             cells[index].innerText = cell ? cell : ''; // Update cell with X or O
         });
     });
+    
+    // Highlight last move
+    if (board.lastMove) {
+        const lastMoveCell = cells[board.lastMove.x * 15 + board.lastMove.y];
+        lastMoveCell.classList.add('last-move');
+    }
 }
+
+// Handle game over
+socket.on('gameOver', (winner) => {
+    document.getElementById('gameOver').innerText = `Player ${winner} wins!`;
+    document.getElementById('gameOver').style.display = 'block';
+});
 
 // Create the board on page load
 createBoard();

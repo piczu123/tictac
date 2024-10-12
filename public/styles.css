@@ -38,7 +38,18 @@ body {
   background-color: #f0f0f0;
 }
 
+.cell.last-move {
+  background-color: #ffeb3b; /* Highlight last move */
+}
+
 #currentTurn {
   margin-top: 20px;
   font-size: 20px;
+}
+
+#gameOver {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  color: green;
 }

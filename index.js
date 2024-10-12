@@ -12,6 +12,35 @@ let rooms = {};
 
 app.use(express.static('public'));
 
+const checkWin = (board, x, y, playerSymbol) => {
+    // Check all possible win directions
+    const directions = [
+        [[0, 1], [0, -1]], // Horizontal
+        [[1, 0], [-1, 0]], // Vertical
+        [[1, 1], [-1, -1]], // Diagonal \
+        [[1, -1], [-1, 1]]  // Diagonal /
+    ];
+    
+    for (const direction of directions) {
+        let count = 1;
+
+        for (const [dx, dy] of direction) {
+            let nx = x + dx;
+            let ny = y + dy;
+
+            while (nx >= 0 && ny >= 0 && nx < 15 && ny < 15 && board[nx][ny] === playerSymbol) {
+                count++;
+                nx += dx;
+                ny += dy;
+            }
+        }
+
+        if (count >= 5) return true;
+    }
+
+    return false;
+};
+
 io.on('connection', (socket) => {
     console.log('New client connected');
 
@@ -20,6 +49,7 @@ io.on('connection', (socket) => {
             players: [socket.id],
             board: Array(15).fill(null).map(() => Array(15).fill(null)),
             currentTurn: 'X',
+            lastMove: null,
         };
         socket.join(roomName);
         console.log(`Room created: ${roomName}`);
@@ -41,8 +71,15 @@ io.on('connection', (socket) => {
         const room = rooms[roomName];
         if (room && room.board[x][y] === null && room.currentTurn === playerSymbol) {
             room.board[x][y] = playerSymbol;
+            room.lastMove = { x, y, playerSymbol }; // Save the last move
             room.currentTurn = playerSymbol === 'X' ? 'O' : 'X'; // Swap turns
-            io.to(roomName).emit('gameState', room);
+            
+            // Check for a win
+            if (checkWin(room.board, x, y, playerSymbol)) {
+                io.to(roomName).emit('gameOver', playerSymbol);
+            } else {
+                io.to(roomName).emit('gameState', room);
+            }
         }
     });
 
