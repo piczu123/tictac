@@ -32,7 +32,8 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('playerJoined', playerName);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
-                io.to(roomName).emit('startGame');
+                const firstSymbol = Math.random() < 0.5 ? 'X' : 'O';
+                io.to(roomName).emit('startGame', firstSymbol);
             }
         } else {
             socket.emit('roomFull', roomName);

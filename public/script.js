@@ -1,5 +1,6 @@
 const socket = io();
 
+const setNameButton = document.getElementById('set-name');
 const createRoomButton = document.getElementById('create-room');
 const joinRoomButton = document.getElementById('join-room');
 const roomNameInput = document.getElementById('room-name');
@@ -10,24 +11,32 @@ const statusDiv = document.getElementById('status');
 
 let currentRoom;
 let playerSymbol;
+let playerName;
+let isMyTurn = false;
+
+setNameButton.addEventListener('click', () => {
+    playerName = playerNameInput.value.trim();
+    if (playerName) {
+        document.getElementById('name-prompt').style.display = 'none';
+        document.getElementById('room-controls').style.display = 'block';
+    }
+});
 
 createRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
-    const playerName = playerNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('createRoom', roomName);
         currentRoom = roomName;
-        playerSymbol = 'X';
+        playerSymbol = 'X'; // Always X for the creator
     }
 });
 
 joinRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
-    const playerName = playerNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('joinRoom', roomName, playerName);
         currentRoom = roomName;
-        playerSymbol = 'O';
+        playerSymbol = 'O'; // Always O for the joiner
     }
 });
 
@@ -35,10 +44,14 @@ socket.on('roomCreated', (roomName) => {
     alert(`Room ${roomName} created! Join using the same room name.`);
 });
 
-socket.on('roomJoined', (roomName, players) => {
+socket.on('roomJoined', (roomName, players, firstPlayer) => {
     alert(`Joined room ${roomName} as ${playerSymbol}`);
     gameDiv.style.display = 'block';
     initializeBoard();
+    isMyTurn = firstPlayer === playerSymbol;
+    if (!isMyTurn) {
+        statusDiv.innerText = "Wait for your opponent's turn...";
+    }
 });
 
 socket.on('playerJoined', (playerName) => {
@@ -56,7 +69,11 @@ function initializeBoard() {
             const cell = document.createElement('div');
             cell.dataset.x = i;
             cell.dataset.y = j;
-            cell.addEventListener('click', () => makeMove(i, j));
+            cell.addEventListener('click', () => {
+                if (isMyTurn) {
+                    makeMove(i, j);
+                }
+            });
             boardDiv.appendChild(cell);
         }
     }
@@ -70,6 +87,7 @@ socket.on('moveMade', (board, lastMove) => {
     updateBoard(board);
     if (lastMove) {
         statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
+        isMyTurn = (lastMove.playerSymbol !== playerSymbol); // Toggle turn
     }
 });
 
