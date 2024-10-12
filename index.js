@@ -10,16 +10,15 @@ app.use(express.static('public'));
 
 let rooms = {};
 
-// Bind to the port from the environment, or default to 3000 if not set
 const PORT = process.env.PORT || 3000;
 
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('createRoom', (roomName) => {
+    socket.on('createRoom', (roomName, playerName) => {
         if (!rooms[roomName]) {
             rooms[roomName] = { 
-                players: [], 
+                players: [{ id: socket.id, name: playerName }], 
                 board: Array(15).fill(null).map(() => Array(15).fill(null)), 
                 lastMove: null 
             };

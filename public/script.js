@@ -1,22 +1,32 @@
 const socket = io();
 
+const playerNameInput = document.getElementById('player-name');
+const setNameButton = document.getElementById('set-name');
 const createRoomButton = document.getElementById('create-room');
 const joinRoomButton = document.getElementById('join-room');
 const roomNameInput = document.getElementById('room-name');
-const playerNameInput = document.getElementById('player-name');
 const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
 const roomControlsDiv = document.getElementById('room-controls');
+const playerNamePromptDiv = document.getElementById('player-name-prompt');
 
 let currentRoom;
 let playerSymbol;
+let playerName;
+
+setNameButton.addEventListener('click', () => {
+    playerName = playerNameInput.value.trim();
+    if (playerName) {
+        playerNamePromptDiv.style.display = 'none'; // Hide name prompt
+        roomControlsDiv.style.display = 'block'; // Show room controls
+    }
+});
 
 createRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
-    const playerName = playerNameInput.value.trim();
     if (roomName && playerName) {
-        socket.emit('createRoom', roomName);
+        socket.emit('createRoom', roomName, playerName);
         currentRoom = roomName;
         playerSymbol = 'X'; // First player is always 'X'
         roomControlsDiv.style.display = 'none'; // Hide room controls
@@ -25,7 +35,6 @@ createRoomButton.addEventListener('click', () => {
 
 joinRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
-    const playerName = playerNameInput.value.trim();
     if (roomName && playerName) {
         socket.emit('joinRoom', roomName, playerName);
         currentRoom = roomName;
@@ -35,12 +44,14 @@ joinRoomButton.addEventListener('click', () => {
 });
 
 socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created! Join using the same room name.`);
+    alert(`Room ${roomName} created! You are ${playerSymbol}.`);
+    gameDiv.style.display = 'block'; // Show game board
+    initializeBoard();
 });
 
 socket.on('roomJoined', (roomName, players) => {
-    alert(`Joined room ${roomName} as ${playerSymbol}`);
-    gameDiv.style.display = 'block';
+    alert(`Joined room ${roomName} as ${playerSymbol}.`);
+    gameDiv.style.display = 'block'; // Show game board
     initializeBoard();
 });
 
