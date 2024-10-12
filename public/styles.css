@@ -1,23 +1,21 @@
 body {
   font-family: Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
+}
+
+#roomSetup {
+  margin-bottom: 20px;
 }
 
 #board {
   display: grid;
-  grid-template-columns: repeat(15, 50px);
-  grid-template-rows: repeat(15, 50px);
-  gap: 1px;
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
 }
 
 .cell {
-  width: 50px;
-  height: 50px;
-  background-color: lightgrey;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,5 +24,5 @@ body {
 }
 
 .cell:hover {
-  background-color: #ddd;
+  background-color: #f0f0f0;
 }

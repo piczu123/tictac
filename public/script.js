@@ -1,61 +1,22 @@
 const socket = io();
 
-document.getElementById('createRoom').addEventListener('click', () => {
+document.getElementById('createRoomBtn').onclick = () => {
     const roomName = document.getElementById('roomName').value;
-    if (roomName) {
-        socket.emit('createRoom', roomName);
-    } else {
-        alert('Please enter a room name.');
-    }
-});
+    socket.emit('createRoom', roomName);
+};
 
-document.getElementById('joinRoom').addEventListener('click', () => {
+document.getElementById('joinRoomBtn').onclick = () => {
     const roomName = document.getElementById('roomName').value;
-    if (roomName) {
-        socket.emit('joinRoom', roomName);
-    } else {
-        alert('Please enter a room name.');
-    }
-});
+    socket.emit('joinRoom', roomName);
+};
 
-// Listen for various events from the server
-socket.on('roomExists', () => {
-    alert('Room already exists. Please choose another name.');
-});
-
-socket.on('roomFull', () => {
-    alert('The room is full. Please try another room.');
-});
-
-socket.on('roomNotFound', () => {
-    alert('Room not found. Please check the name and try again.');
-});
-
-socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created!`);
-    createBoard(); // Show the board for the creator
+socket.on('gameState', (state) => {
+    console.log('Received game state:', state);
+    updateBoard(state.board);
+    document.getElementById('currentTurn').innerText = `Current Turn: Player ${state.currentTurn}`;
     document.getElementById('board').style.display = 'grid'; // Show the board
 });
 
-socket.on('playerJoined', (players) => {
-    console.log('Players in the room:', players);
-    document.getElementById('board').style.display = 'grid'; // Show the board for both players
-});
-
-socket.on('gameState', (state) => {
-    updateBoard(state.board);
-    document.getElementById('board').style.display = 'grid'; // Show the board for the joining player
-});
-
-socket.on('updateBoard', (board) => {
-    updateBoard(board);
-});
-
-socket.on('updateTurn', (turn) => {
-    document.getElementById('currentTurn').innerText = `Current Turn: Player ${turn}`;
-});
-
-// Function to create the board
 function createBoard() {
     const boardDiv = document.getElementById('board');
     boardDiv.innerHTML = ''; // Clear previous board
@@ -72,13 +33,15 @@ function createBoard() {
     }
 }
 
-// Function to update the board UI
 function updateBoard(board) {
     const cells = document.querySelectorAll('.cell');
     board.forEach((row, x) => {
         row.forEach((cell, y) => {
             const index = x * 15 + y;
-            cells[index].innerText = cell ? cell : ''; // Set cell text to X or O
+            cells[index].innerText = cell ? cell : ''; // Update cell with X or O
         });
     });
 }
+
+// Create the board on page load
+createBoard();

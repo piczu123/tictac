@@ -3,11 +3,14 @@
     "version": "1.0.0",
     "main": "index.js",
     "scripts": {
-      "start": "node index.js"
+        "start": "node index.js"
     },
     "dependencies": {
-      "express": "^4.17.1",
-      "socket.io": "^4.0.0"
-    }
-  }
-  
+        "express": "^4.21.1",
+        "socket.io": "^4.8.0"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": ""
+}
