@@ -28,16 +28,13 @@ io.on('connection', (socket) => {
                 turn: 'X' // First turn starts with 'X'
             };
             console.log(`Room created: ${roomName}`);
-        }
-        socket.join(roomName);
-        currentRoom = roomName; // Set the current room for this socket
-        playerName = name; // Store the player's name
-        rooms[roomName].players[0] = { id: socket.id, name }; // Save player details
-        socket.emit('roomCreated', roomName);
-        if (rooms[roomName].players.length === 2) {
-            const firstPlayerIndex = Math.floor(Math.random() * 2); // Randomly choose first player
-            const firstPlayer = rooms[roomName].players[firstPlayerIndex];
-            io.to(roomName).emit('startGame', firstPlayer); // Notify players who starts first
+            socket.join(roomName);
+            currentRoom = roomName; // Set the current room for this socket
+            playerName = name; // Store the player's name
+            socket.emit('roomCreated', roomName);
+            socket.emit('startGame', { name: playerName });
+        } else {
+            socket.emit('roomExists', roomName); // Notify client that the room exists
         }
     });
 
@@ -50,9 +47,7 @@ io.on('connection', (socket) => {
             io.to(roomName).emit('playerJoined', name);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
-                const firstPlayerIndex = Math.floor(Math.random() * 2); // Randomly choose first player
-                const firstPlayer = rooms[roomName].players[firstPlayerIndex];
-                io.to(roomName).emit('startGame', firstPlayer); // Notify players who starts first
+                io.to(roomName).emit('startGame', { name: playerName });
             }
         } else {
             socket.emit('roomFull', roomName);
@@ -80,6 +75,13 @@ io.on('connection', (socket) => {
             if (rooms[room].players.length === 0) {
                 delete rooms[room];
             }
+        }
+    });
+
+    // Reset room when game ends
+    socket.on('endGame', () => {
+        if (rooms[currentRoom]) {
+            delete rooms[currentRoom];
         }
     });
 });
@@ -120,7 +122,7 @@ const checkWin = (roomName, x, y, playerSymbol) => {
 
         if (count >= 5) {
             io.to(roomName).emit('gameOver', playerSymbol);
-            return;
+            break;
         }
     }
 };

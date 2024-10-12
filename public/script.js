@@ -8,7 +8,7 @@ const roomNameInput = document.getElementById('room-name');
 const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
-const playerNamesDiv = document.getElementById('player-names'); // For displaying player names
+const playerNamesDiv = document.getElementById('player-names');
 const roomControlsDiv = document.getElementById('room-controls');
 const namePromptDiv = document.getElementById('name-prompt');
 
@@ -61,8 +61,11 @@ socket.on('playerJoined', (playerName) => {
 
 socket.on('startGame', (firstPlayer) => {
     statusDiv.innerText = 'Game started! Your turn: ' + playerSymbol;
-    // Display player names on the board
     playerNamesDiv.innerText = `Players: ${firstPlayer.name} (X) vs ${currentRoom.players.find(p => p.name !== firstPlayer.name).name} (O)`;
+});
+
+socket.on('roomExists', (roomName) => {
+    alert(`Room ${roomName} already exists. Please choose a different name.`);
 });
 
 function initializeBoard() {
@@ -102,4 +105,5 @@ function updateBoard(board) {
 socket.on('gameOver', (winnerSymbol) => {
     statusDiv.innerText = `${winnerSymbol} wins!`;
     boardDiv.style.pointerEvents = 'none';
+    socket.emit('endGame'); // Notify server that the game has ended
 });
