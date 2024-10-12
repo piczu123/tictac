@@ -8,86 +8,81 @@ const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
 
-let rooms = {};
+let rooms = {}; // Object to hold room data
 
-app.use(express.static('public'));
-
-const checkWin = (board, x, y, playerSymbol) => {
-    // Check all possible win directions
-    const directions = [
-        [[0, 1], [0, -1]], // Horizontal
-        [[1, 0], [-1, 0]], // Vertical
-        [[1, 1], [-1, -1]], // Diagonal \
-        [[1, -1], [-1, 1]]  // Diagonal /
-    ];
-    
-    for (const direction of directions) {
-        let count = 1;
-
-        for (const [dx, dy] of direction) {
-            let nx = x + dx;
-            let ny = y + dy;
-
-            while (nx >= 0 && ny >= 0 && nx < 15 && ny < 15 && board[nx][ny] === playerSymbol) {
-                count++;
-                nx += dx;
-                ny += dy;
-            }
-        }
-
-        if (count >= 5) return true;
-    }
-
-    return false;
-};
+app.use(express.static('public')); // Serve static files from 'public' directory
 
 io.on('connection', (socket) => {
     console.log('New client connected');
 
-    socket.on('createRoom', (roomName) => {
-        rooms[roomName] = {
-            players: [socket.id],
-            board: Array(15).fill(null).map(() => Array(15).fill(null)),
-            currentTurn: 'X',
-            lastMove: null,
-        };
+    // Join a room
+    socket.on('joinRoom', ({ roomName, playerName }) => {
         socket.join(roomName);
-        console.log(`Room created: ${roomName}`);
-        socket.emit('gameState', rooms[roomName]);
-    });
-
-    socket.on('joinRoom', (roomName) => {
-        if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            rooms[roomName].players.push(socket.id);
-            socket.join(roomName);
-            console.log(`Player joined room: ${roomName}`);
-            io.to(roomName).emit('gameState', rooms[roomName]);
-        } else {
-            socket.emit('error', 'Room does not exist or is full');
+        
+        if (!rooms[roomName]) {
+            rooms[roomName] = {
+                players: [],
+                board: Array(15).fill(null).map(() => Array(15).fill(null)),
+                turn: 'X', // Player 1 starts with 'X'
+                winner: null
+            };
         }
+
+        rooms[roomName].players.push(playerName);
+        io.to(roomName).emit('updateGame', rooms[roomName]);
     });
 
-    socket.on('makeMove', ({ roomName, x, y, playerSymbol }) => {
+    // Handle making a move
+    socket.on('makeMove', ({ roomName, x, y }) => {
         const room = rooms[roomName];
-        if (room && room.board[x][y] === null && room.currentTurn === playerSymbol) {
-            room.board[x][y] = playerSymbol;
-            room.lastMove = { x, y, playerSymbol }; // Save the last move
-            room.currentTurn = playerSymbol === 'X' ? 'O' : 'X'; // Swap turns
+
+        if (room.winner) return; // Ignore moves if there's already a winner
+        if (room.board[x][y] === null) {
+            room.board[x][y] = room.turn;
+            room.turn = room.turn === 'X' ? 'O' : 'X'; // Switch turn
             
-            // Check for a win
-            if (checkWin(room.board, x, y, playerSymbol)) {
-                io.to(roomName).emit('gameOver', playerSymbol);
-            } else {
-                io.to(roomName).emit('gameState', room);
+            if (checkWin(room.board, x, y)) {
+                room.winner = room.board[x][y];
+                io.to(roomName).emit('gameOver', room.winner);
             }
+
+            io.to(roomName).emit('updateGame', room);
         }
     });
 
+    // Handle disconnection
     socket.on('disconnect', () => {
         console.log('Client disconnected');
-        // Handle player disconnect logic if needed
     });
 });
+
+// Check for a win condition
+function checkWin(board, x, y) {
+    const symbol = board[x][y];
+    return (
+        checkDirection(board, symbol, x, y, 1, 0) || // Horizontal
+        checkDirection(board, symbol, x, y, 0, 1) || // Vertical
+        checkDirection(board, symbol, x, y, 1, 1) || // Diagonal /
+        checkDirection(board, symbol, x, y, 1, -1)   // Diagonal \
+    );
+}
+
+// Check in a specific direction for a win
+function checkDirection(board, symbol, x, y, dx, dy) {
+    let count = 0;
+    for (let i = -4; i <= 4; i++) {
+        const nx = x + i * dx;
+        const ny = y + i * dy;
+
+        if (nx >= 0 && ny >= 0 && nx < 15 && ny < 15 && board[nx][ny] === symbol) {
+            count++;
+            if (count === 5) return true; // Found 5 in a row
+        } else {
+            count = 0; // Reset count if broken
+        }
+    }
+    return false;
+}
 
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

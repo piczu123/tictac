@@ -1,62 +1,34 @@
 body {
   font-family: Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f9f9f9;
+  background-color: #f4f4f4;
 }
 
-#container {
+#game-container {
+  width: 600px;
+  margin: auto;
   text-align: center;
 }
 
-#roomSetup {
-  margin-bottom: 20px;
-}
-
-#board {
-  display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
-  margin: 0 auto;
-  position: relative;
+.row {
+  display: flex;
 }
 
 .cell {
   width: 40px;
   height: 40px;
-  border: 1px solid #000;
+  border: 1px solid #ccc;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  font-size: 24px;
+  background-color: white;
 }
 
 .cell:hover {
-  background-color: #f0f0f0;
+  background-color: #e0e0e0;
 }
 
-.cell.last-move {
-  background-color: #ffeb3b; /* Highlight last move */
-}
-
-.winning-line {
-  position: absolute;
-  background-color: red;
-  z-index: 1;
-}
-
-#currentTurn {
-  margin-top: 20px;
-  font-size: 20px;
-}
-
-#gameOver {
-  margin-top: 20px;
-  font-size: 24px;
-  font-weight: bold;
-  color: green;
+.winner {
+  background-color: yellow; /* Highlight winning cells */
 }
