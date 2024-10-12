@@ -56,7 +56,6 @@ socket.on('roomJoined', (roomName, players) => {
 
 socket.on('playerJoined', (playerName) => {
     statusDiv.innerText = `${playerName} joined the game!`;
-    gameDiv.style.display = 'block';
     socket.emit('requestGameStart', currentRoom);
 });
 
@@ -64,6 +63,7 @@ socket.on('startGame', (players) => {
     gameDiv.style.display = 'block';
     playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
     statusDiv.innerText = `Game started! Waiting for the first move...`;
+    initializeBoard(); // Initialize board when the game starts
 });
 
 function initializeBoard() {
