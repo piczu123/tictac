@@ -8,6 +8,7 @@ const roomNameInput = document.getElementById('room-name');
 const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
+const playerNamesDiv = document.getElementById('player-names'); // Reference to player names div
 const roomControlsDiv = document.getElementById('room-controls');
 const namePromptDiv = document.getElementById('name-prompt');
 
@@ -51,6 +52,7 @@ socket.on('roomCreated', (roomName) => {
 socket.on('roomJoined', (roomName, players) => {
     alert(`Joined room ${roomName} as ${playerSymbol}`);
     gameDiv.style.display = 'block';
+    displayPlayerNames(players); // Display player names when room is joined
     initializeBoard();
 });
 
@@ -100,3 +102,13 @@ socket.on('gameOver', (winnerSymbol) => {
     statusDiv.innerText = `${winnerSymbol} wins!`;
     boardDiv.style.pointerEvents = 'none';
 });
+
+// Function to display player names on the board
+function displayPlayerNames(players) {
+    playerNamesDiv.innerHTML = '';
+    players.forEach((player, index) => {
+        const playerDiv = document.createElement('div');
+        playerDiv.innerText = `${player.name} (${index === 0 ? 'X' : 'O'})`;
+        playerNamesDiv.appendChild(playerDiv);
+    });
+}
