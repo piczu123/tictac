@@ -1,107 +1,97 @@
-const socket = io();
+const board = document.getElementById('game-board');
+const leaderboardList = document.getElementById('leaderboard-list');
+let currentPlayer = 'X';
+let playerName = prompt("Enter your name:");
 
-const playerNameInput = document.getElementById('player-name');
-const submitNameButton = document.getElementById('submit-name');
-const createRoomButton = document.getElementById('create-room');
-const joinRoomButton = document.getElementById('join-room');
-const roomNameInput = document.getElementById('room-name');
-const gameDiv = document.getElementById('game');
-const boardDiv = document.getElementById('board');
-const statusDiv = document.getElementById('status');
-const roomControlsDiv = document.getElementById('room-controls');
-const namePromptDiv = document.getElementById('name-prompt');
-const playerNamesDiv = document.getElementById('player-names');
-
-let currentRoom;
-let playerSymbol;
-let playerName;
-
-// Prompt for player's name
-submitNameButton.addEventListener('click', () => {
-    playerName = playerNameInput.value.trim();
-    if (playerName) {
-        namePromptDiv.style.display = 'none';
-        roomControlsDiv.style.display = 'block';
+// Initialize game board
+function initGameBoard() {
+    for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.addEventListener('click', () => handleCellClick(i));
+        board.appendChild(cell);
     }
-});
+}
 
-createRoomButton.addEventListener('click', () => {
-    const roomName = roomNameInput.value.trim();
-    if (roomName && playerName) {
-        socket.emit('createRoom', roomName, playerName);
-        currentRoom = roomName;
-        playerSymbol = 'X';
-    }
-});
+// Handle cell clicks
+function handleCellClick(index) {
+    const cell = board.children[index];
+    if (!cell.textContent) {
+        cell.textContent = currentPlayer;
 
-joinRoomButton.addEventListener('click', () => {
-    const roomName = roomNameInput.value.trim();
-    if (roomName && playerName) {
-        socket.emit('joinRoom', roomName, playerName);
-        currentRoom = roomName;
-        playerSymbol = 'O';
-    }
-});
-
-socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created! Waiting for an opponent...`);
-});
-
-socket.on('roomJoined', (roomName, players) => {
-    alert(`Joined room ${roomName} as ${playerSymbol}`);
-    gameDiv.style.display = 'block';
-    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
-    initializeBoard();
-    statusDiv.innerText = `Game started! It's ${players[0].name}'s turn.`;
-});
-
-socket.on('playerJoined', (playerName) => {
-    statusDiv.innerText = `${playerName} joined the game!`;
-});
-
-socket.on('startGame', (players) => {
-    gameDiv.style.display = 'block';
-    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
-    initializeBoard();
-    const firstPlayer = Math.random() < 0.5 ? players[0] : players[1];
-    statusDiv.innerText = `Game started! It's ${firstPlayer.name}'s turn.`;
-});
-
-function initializeBoard() {
-    boardDiv.innerHTML = '';
-    for (let i = 0; i < 15; i++) {
-        for (let j = 0; j < 15; j++) {
-            const cell = document.createElement('div');
-            cell.dataset.x = i;
-            cell.dataset.y = j;
-            cell.addEventListener('click', () => makeMove(i, j));
-            boardDiv.appendChild(cell);
+        // Check for win or draw
+        if (checkWin()) {
+            alert(`${currentPlayer} wins!`);
+            updateStats(currentPlayer, currentPlayer === 'X' ? 'O' : 'X');
+            resetGame();
+        } else if (isDraw()) {
+            alert("It's a draw!");
+            resetGame();
+        } else {
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
         }
     }
 }
 
-function makeMove(x, y) {
-    socket.emit('makeMove', x, y, playerSymbol);
+// Check win logic
+function checkWin() {
+    const winPatterns = [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        [0, 4, 8],
+        [2, 4, 6]
+    ];
+
+    return winPatterns.some(pattern => {
+        return pattern.every(index => board.children[index].textContent === currentPlayer);
+    });
 }
 
-socket.on('moveMade', (board, lastMove, players) => {
-    updateBoard(board);
-    if (lastMove) {
-        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} (${players[lastMove.playerSymbol === 'X' ? 0 : 1].name}) at (${lastMove.x}, ${lastMove.y})`;
-    }
-});
+// Check draw logic
+function isDraw() {
+    return Array.from(board.children).every(cell => cell.textContent);
+}
 
-function updateBoard(board) {
-    const cells = boardDiv.children;
-    for (let i = 0; i < 15; i++) {
-        for (let j = 0; j < 15; j++) {
-            const cell = cells[i * 15 + j];
-            cell.innerText = board[i][j] ? board[i][j] : '';
+// Reset game
+function resetGame() {
+    Array.from(board.children).forEach(cell => cell.textContent = '');
+    currentPlayer = 'X';
+}
+
+// Fetch and display leaderboard
+function fetchLeaderboard() {
+    fetch('/leaderboard')
+        .then(response => response.json())
+        .then(data => {
+            leaderboardList.innerHTML = ''; // Clear existing list
+            data.forEach(player => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${player.name}: Wins: ${player.wins}, Losses: ${player.losses}, Elo: ${player.elo}`;
+                leaderboardList.appendChild(listItem);
+            });
+        });
+}
+
+// Call init and fetchLeaderboard on page load
+initGameBoard();
+fetchLeaderboard();
+
+// Update player stats
+function updateStats(winner, loser) {
+    fetch('/updateStats', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ winner, loser })
+    })
+    .then(response => {
+        if (response.ok) {
+            fetchLeaderboard(); // Refresh leaderboard
         }
-    }
+    });
 }
-
-socket.on('gameOver', (winnerSymbol) => {
-    statusDiv.innerText = `${winnerSymbol} wins!`;
-    boardDiv.style.pointerEvents = 'none';
-});
