@@ -1,48 +1,91 @@
 const socket = io();
 
-let currentPlayerSymbol = 'X';
-let room = null;
-
-document.getElementById('joinRoomBtn').addEventListener('click', () => {
-    room = document.getElementById('roomInput').value;
-    if (room) {
-        socket.emit('joinRoom', room);
-        document.getElementById('messageDisplay').textContent = `Joined room: ${room}`;
-        initializeBoard();
+document.getElementById('createRoom').addEventListener('click', () => {
+    const roomName = document.getElementById('roomName').value;
+    if (roomName) {
+        socket.emit('createRoom', roomName);
+    } else {
+        alert('Please enter a room name.');
     }
 });
 
-socket.on('syncGameState', (gameState) => {
-    updateBoard(gameState);
+document.getElementById('joinRoom').addEventListener('click', () => {
+    const roomName = document.getElementById('roomName').value;
+    if (roomName) {
+        socket.emit('joinRoom', roomName);
+    } else {
+        alert('Please enter a room name.');
+    }
 });
 
-function initializeBoard() {
-    const gameBoard = document.getElementById('gameBoard');
-    gameBoard.innerHTML = '';
+// Listen for various events from the server
+socket.on('roomExists', () => {
+    alert('Room already exists. Please choose another name.');
+});
+
+socket.on('roomFull', () => {
+    alert('The room is full. Please try another room.');
+});
+
+socket.on('roomNotFound', () => {
+    alert('Room not found. Please check the name and try again.');
+});
+
+socket.on('roomCreated', (roomName) => {
+    alert(`Room ${roomName} created!`);
+    createBoard(); // Show the board for the creator
+    document.getElementById('board').style.display = 'grid'; // Show the board
+});
+
+socket.on('playerJoined', (players) => {
+    console.log('Players in the room:', players);
+    document.getElementById('board').style.display = 'grid'; // Show the board for both players
+});
+
+socket.on('gameState', (state) => {
+    updateBoard(state.board);
+    document.getElementById('board').style.display = 'grid'; // Show the board for the joining player
+});
+
+socket.on('updateBoard', (board) => {
+    updateBoard(board);
+});
+
+socket.on('updateTurn', (turn) => {
+    document.getElementById('currentTurn').innerText = `Current Turn: Player ${turn}`;
+});
+
+socket.on('gameOver', (winner) => {
+    document.getElementById('message').innerText = `Player ${winner} wins!`;
+    document.getElementById('board').style.display = 'none'; // Hide the board when the game is over
+});
+
+// Create the game board
+function createBoard() {
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = ''; // Clear previous cells
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
             cell.classList.add('cell');
-            cell.dataset.row = i;
-            cell.dataset.col = j;
-            cell.addEventListener('click', () => makeMove(i, j));
-            gameBoard.appendChild(cell);
+            cell.addEventListener('click', () => makeMove(i, j)); // Register click event
+            boardDiv.appendChild(cell);
         }
     }
 }
 
-function makeMove(row, col) {
-    if (room) {
-        socket.emit('makeMove', { room, row, col, symbol: currentPlayerSymbol });
-    }
+// Update the board based on the current state
+function updateBoard(board) {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        const x = Math.floor(index / 15);
+        const y = index % 15;
+        cell.innerText = board[x][y] === null ? '' : board[x][y];
+    });
 }
 
-function updateBoard(gameState) {
-    const gameBoard = document.getElementById('gameBoard');
-    for (let i = 0; i < 15; i++) {
-        for (let j = 0; j < 15; j++) {
-            const cell = gameBoard.children[i * 15 + j];
-            cell.textContent = gameState[i][j];
-        }
-    }
+// Make a move in the game
+function makeMove(x, y) {
+    const roomName = document.getElementById('roomName').value;
+    socket.emit('makeMove', { roomName, x, y });
 }
