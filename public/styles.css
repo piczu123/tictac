@@ -1,11 +1,9 @@
 body {
-  font-family: Arial, sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  margin: 0;
-  background-color: #f0f0f0;
+  font-family: Arial, sans-serif;
 }
 
 #app {
@@ -14,15 +12,15 @@ body {
 
 #board {
   display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
+  grid-template-columns: repeat(15, 30px);
+  gap: 1px;
   margin: 20px auto;
 }
 
 #board div {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #000;
+  width: 30px;
+  height: 30px;
+  background-color: lightgray;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -30,11 +28,11 @@ body {
   font-size: 24px;
 }
 
-#status {
-  margin: 10px 0;
-  font-size: 18px;
+#board div:hover {
+  background-color: darkgray;
 }
 
-#players {
-  font-size: 16px;
+#status {
+  margin: 10px 0;
+  font-size: 20px;
 }

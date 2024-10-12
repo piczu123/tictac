@@ -21,6 +21,7 @@ io.on('connection', (socket) => {
                 players: [],
                 board: Array(15).fill(null).map(() => Array(15).fill(null)),
                 lastMove: null,
+                currentPlayer: null, // Track current player
             };
             console.log(`Room created: ${roomName}`);
         }
@@ -30,24 +31,33 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (roomName, playerName) => {
         if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            rooms[roomName].players.push({ id: socket.id, name: playerName });
+            const playerSymbol = rooms[roomName].players.length === 0 ? 'X' : 'O';
+            rooms[roomName].players.push({ id: socket.id, name: playerName, symbol: playerSymbol });
             socket.join(roomName);
-            io.to(roomName).emit('playerJoined', playerName);
+            io.to(roomName).emit('playerJoined', playerName, playerSymbol);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
-                io.to(roomName).emit('startGame');
+                rooms[roomName].currentPlayer = rooms[roomName].players[0].id; // Randomly set first player
+                io.to(roomName).emit('startGame', rooms[roomName].players[0].symbol);
             }
         } else {
             socket.emit('roomFull', roomName);
         }
     });
 
-    socket.on('makeMove', (roomName, x, y, playerSymbol) => {
+    socket.on('makeMove', (roomName, x, y, playerId) => {
         const room = rooms[roomName];
-        if (room && room.board[x][y] === null) {
+        const playerSymbol = room.players.find(player => player.id === playerId).symbol;
+
+        // Check if it's the player's turn and if the move is valid
+        if (room && room.board[x][y] === null && room.currentPlayer === playerId) {
             room.board[x][y] = playerSymbol;
             room.lastMove = { x, y, playerSymbol };
-            io.to(roomName).emit('moveMade', room.board, room.lastMove);
+
+            // Switch current player
+            room.currentPlayer = room.players[0].id === playerId ? room.players[1].id : room.players[0].id;
+
+            io.to(roomName).emit('moveMade', room.board, room.lastMove, playerSymbol);
             checkWin(roomName, x, y, playerSymbol);
         }
     });

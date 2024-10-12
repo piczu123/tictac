@@ -1,6 +1,5 @@
 const socket = io();
 
-const submitNameButton = document.getElementById('submit-name');
 const createRoomButton = document.getElementById('create-room');
 const joinRoomButton = document.getElementById('join-room');
 const roomNameInput = document.getElementById('room-name');
@@ -8,59 +7,55 @@ const playerNameInput = document.getElementById('player-name');
 const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
-const playersDiv = document.getElementById('players');
 
 let currentRoom;
 let playerSymbol;
 let playerName;
 
-submitNameButton.addEventListener('click', () => {
-    playerName = playerNameInput.value.trim();
-    if (playerName) {
-        document.getElementById('name-input').style.display = 'none';
-        document.getElementById('room-controls').style.display = 'block';
-    }
-});
-
 createRoomButton.addEventListener('click', () => {
+    playerName = playerNameInput.value.trim();
+    if (!playerName) {
+        alert('Please enter your name.');
+        return;
+    }
+    
     const roomName = roomNameInput.value.trim();
     if (roomName) {
         socket.emit('createRoom', roomName);
         currentRoom = roomName;
-        playerSymbol = 'X';
     }
 });
 
 joinRoomButton.addEventListener('click', () => {
+    playerName = playerNameInput.value.trim();
+    if (!playerName) {
+        alert('Please enter your name.');
+        return;
+    }
+
     const roomName = roomNameInput.value.trim();
     if (roomName) {
         socket.emit('joinRoom', roomName, playerName);
         currentRoom = roomName;
-        playerSymbol = 'O';
     }
 });
 
 socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created! You can join using the same room name.`);
-    document.getElementById('room-controls').style.display = 'none';
-    gameDiv.style.display = 'block';
-    initializeBoard();
+    alert(`Room ${roomName} created! Join using the same room name.`);
 });
 
 socket.on('roomJoined', (roomName, players) => {
-    alert(`Joined room ${roomName} as ${playerSymbol}`);
-    document.getElementById('room-controls').style.display = 'none';
+    alert(`Joined room ${roomName}`);
     gameDiv.style.display = 'block';
     initializeBoard();
 });
 
-socket.on('playerJoined', (playerName) => {
-    statusDiv.innerText = `${playerName} joined the game!`;
-    updatePlayersList();
+socket.on('playerJoined', (newPlayerName, playerSymbol) => {
+    statusDiv.innerText = `${newPlayerName} joined the game as ${playerSymbol}`;
 });
 
-socket.on('startGame', () => {
-    statusDiv.innerText = 'Game started!';
+socket.on('startGame', (startingSymbol) => {
+    statusDiv.innerText = `Game started! ${startingSymbol}'s turn`;
 });
 
 function initializeBoard() {
@@ -77,16 +72,12 @@ function initializeBoard() {
 }
 
 function makeMove(x, y) {
-    if (playerSymbol && socket.connected) {
-        socket.emit('makeMove', currentRoom, x, y, playerSymbol);
-    }
+    socket.emit('makeMove', currentRoom, x, y, playerSymbol);
 }
 
-socket.on('moveMade', (board, lastMove) => {
+socket.on('moveMade', (board, lastMove, currentSymbol) => {
     updateBoard(board);
-    if (lastMove) {
-        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
-    }
+    statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y}). Now it's ${currentSymbol}'s turn.`;
 });
 
 function updateBoard(board) {
@@ -101,15 +92,5 @@ function updateBoard(board) {
 
 socket.on('gameOver', (winnerSymbol) => {
     statusDiv.innerText = `${winnerSymbol} wins!`;
-    boardDiv.style.pointerEvents = 'none';
+    boardDiv.style.pointerEvents = 'none'; // Disable board interactions
 });
-
-function updatePlayersList() {
-    playersDiv.innerHTML = ''; // Clear the current list
-    const players = [...Object.values(socket.rooms)].filter(room => room.players).flat();
-    players.forEach(player => {
-        const playerElement = document.createElement('div');
-        playerElement.innerText = player.name;
-        playersDiv.appendChild(playerElement);
-    });
-}
