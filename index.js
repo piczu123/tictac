@@ -16,21 +16,33 @@ const PORT = process.env.PORT || 3000;
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    socket.on('createRoom', (roomName) => {
+    let currentRoom; // Store the current room for each socket
+    let playerName; // Store the player's name
+
+    socket.on('createRoom', (roomName, name) => {
         if (!rooms[roomName]) {
-            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), lastMove: null };
+            rooms[roomName] = { 
+                players: [{ id: socket.id, name }], // Store the player in the room
+                board: Array(15).fill(null).map(() => Array(15).fill(null)), 
+                lastMove: null,
+                turn: 'X' // First turn starts with 'X'
+            };
             console.log(`Room created: ${roomName}`);
         }
         socket.join(roomName);
+        currentRoom = roomName; // Set the current room for this socket
+        playerName = name; // Store the player's name
         socket.emit('roomCreated', roomName);
         socket.emit('startGame');  // Emit to the creator that the game should start
     });
 
-    socket.on('joinRoom', (roomName, playerName) => {
+    socket.on('joinRoom', (roomName, name) => {
         if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            rooms[roomName].players.push({ id: socket.id, name: playerName });
+            rooms[roomName].players.push({ id: socket.id, name });
             socket.join(roomName);
-            io.to(roomName).emit('playerJoined', playerName);
+            currentRoom = roomName; // Set the current room for this socket
+            playerName = name; // Store the player's name
+            io.to(roomName).emit('playerJoined', name);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
                 io.to(roomName).emit('startGame');
@@ -40,13 +52,17 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('makeMove', (roomName, x, y, playerSymbol) => {
-        const room = rooms[roomName];
-        if (room && room.board[x][y] === null) {
+    socket.on('makeMove', (x, y, playerSymbol) => {
+        const room = rooms[currentRoom];
+        if (room && room.board[x][y] === null && room.turn === playerSymbol) {
             room.board[x][y] = playerSymbol;
             room.lastMove = { x, y, playerSymbol };
-            io.to(roomName).emit('moveMade', room.board, room.lastMove);
-            checkWin(roomName, x, y, playerSymbol);
+
+            // Switch turn
+            room.turn = playerSymbol === 'X' ? 'O' : 'X';
+
+            io.to(currentRoom).emit('moveMade', room.board, room.lastMove, room.players);
+            checkWin(currentRoom, x, y, playerSymbol);
         }
     });
 

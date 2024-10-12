@@ -1,34 +1,33 @@
 const socket = io();
 
+const playerNameInput = document.getElementById('player-name');
 const submitNameButton = document.getElementById('submit-name');
 const createRoomButton = document.getElementById('create-room');
 const joinRoomButton = document.getElementById('join-room');
 const roomNameInput = document.getElementById('room-name');
-const playerNameInput = document.getElementById('player-name');
 const gameDiv = document.getElementById('game');
 const boardDiv = document.getElementById('board');
 const statusDiv = document.getElementById('status');
-const namePromptDiv = document.getElementById('name-prompt');
 const roomControlsDiv = document.getElementById('room-controls');
+const namePromptDiv = document.getElementById('name-prompt');
 
 let currentRoom;
 let playerSymbol;
 let playerName;
 
+// Prompt for player's name
 submitNameButton.addEventListener('click', () => {
     playerName = playerNameInput.value.trim();
     if (playerName) {
         namePromptDiv.style.display = 'none';
         roomControlsDiv.style.display = 'block';
-    } else {
-        alert('Please enter a valid name!');
     }
 });
 
 createRoomButton.addEventListener('click', () => {
     const roomName = roomNameInput.value.trim();
     if (roomName && playerName) {
-        socket.emit('createRoom', roomName);
+        socket.emit('createRoom', roomName, playerName);
         currentRoom = roomName;
         playerSymbol = 'X';
     }
@@ -44,14 +43,13 @@ joinRoomButton.addEventListener('click', () => {
 });
 
 socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created! Join using the same room name.`);
-    // Emit to the creator that the game should start
-    socket.emit('startGame', roomName);  // This line is important
+    alert(`Room ${roomName} created!`);
+    gameDiv.style.display = 'block';
+    initializeBoard();
 });
 
 socket.on('roomJoined', (roomName, players) => {
     alert(`Joined room ${roomName} as ${playerSymbol}`);
-    roomControlsDiv.style.display = 'none';
     gameDiv.style.display = 'block';
     initializeBoard();
 });
@@ -61,8 +59,7 @@ socket.on('playerJoined', (playerName) => {
 });
 
 socket.on('startGame', () => {
-    statusDiv.innerText = 'Game started!';
-    initializeBoard();  // Initialize board for all players
+    statusDiv.innerText = 'Game started! Your turn: ' + playerSymbol;
 });
 
 function initializeBoard() {
@@ -79,13 +76,13 @@ function initializeBoard() {
 }
 
 function makeMove(x, y) {
-    socket.emit('makeMove', currentRoom, x, y, playerSymbol);
+    socket.emit('makeMove', x, y, playerSymbol);
 }
 
-socket.on('moveMade', (board, lastMove) => {
+socket.on('moveMade', (board, lastMove, players) => {
     updateBoard(board);
     if (lastMove) {
-        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} at (${lastMove.x}, ${lastMove.y})`;
+        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} (${players[lastMove.playerSymbol === 'X' ? 0 : 1].name}) at (${lastMove.x}, ${lastMove.y})`;
     }
 });
 
