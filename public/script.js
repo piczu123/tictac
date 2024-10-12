@@ -1,4 +1,5 @@
 const socket = io();
+let playerSymbol = '';
 
 document.getElementById('createRoomBtn').onclick = () => {
     const roomName = document.getElementById('roomName').value;
@@ -15,6 +16,11 @@ socket.on('gameState', (state) => {
     updateBoard(state.board);
     document.getElementById('currentTurn').innerText = `Current Turn: Player ${state.currentTurn}`;
     document.getElementById('board').style.display = 'grid'; // Show the board
+
+    if (state.players.length === 2) {
+        playerSymbol = state.players[0] === socket.id ? 'X' : 'O'; // Assign symbols based on player position
+        document.getElementById('currentTurn').innerText = `Your Symbol: ${playerSymbol} - ${state.currentTurn}`;
+    }
 });
 
 function createBoard() {
@@ -26,7 +32,7 @@ function createBoard() {
             cell.className = 'cell';
             cell.addEventListener('click', () => {
                 // Emit the move to the server
-                socket.emit('makeMove', { roomName: document.getElementById('roomName').value, x: i, y: j });
+                socket.emit('makeMove', { roomName: document.getElementById('roomName').value, x: i, y: j, playerSymbol });
             });
             boardDiv.appendChild(cell);
         }
