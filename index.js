@@ -10,6 +10,7 @@ app.use(express.static('public'));
 
 let rooms = {};
 
+// Bind to the port from the environment, or default to 3000 if not set
 const PORT = process.env.PORT || 3000;
 
 io.on('connection', (socket) => {
@@ -17,47 +18,34 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', (roomName) => {
         if (!rooms[roomName]) {
-            rooms[roomName] = {
-                players: [],
-                board: Array(15).fill(null).map(() => Array(15).fill(null)),
-                lastMove: null,
-                currentPlayer: null, // Track current player
-            };
+            rooms[roomName] = { players: [], board: Array(15).fill(null).map(() => Array(15).fill(null)), lastMove: null };
             console.log(`Room created: ${roomName}`);
         }
         socket.join(roomName);
         socket.emit('roomCreated', roomName);
+        socket.emit('startGame');  // Emit to the creator that the game should start
     });
 
     socket.on('joinRoom', (roomName, playerName) => {
         if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            const playerSymbol = rooms[roomName].players.length === 0 ? 'X' : 'O';
-            rooms[roomName].players.push({ id: socket.id, name: playerName, symbol: playerSymbol });
+            rooms[roomName].players.push({ id: socket.id, name: playerName });
             socket.join(roomName);
-            io.to(roomName).emit('playerJoined', playerName, playerSymbol);
+            io.to(roomName).emit('playerJoined', playerName);
             socket.emit('roomJoined', roomName, rooms[roomName].players);
             if (rooms[roomName].players.length === 2) {
-                rooms[roomName].currentPlayer = rooms[roomName].players[0].id; // Randomly set first player
-                io.to(roomName).emit('startGame', rooms[roomName].players[0].symbol);
+                io.to(roomName).emit('startGame');
             }
         } else {
             socket.emit('roomFull', roomName);
         }
     });
 
-    socket.on('makeMove', (roomName, x, y, playerId) => {
+    socket.on('makeMove', (roomName, x, y, playerSymbol) => {
         const room = rooms[roomName];
-        const playerSymbol = room.players.find(player => player.id === playerId).symbol;
-
-        // Check if it's the player's turn and if the move is valid
-        if (room && room.board[x][y] === null && room.currentPlayer === playerId) {
+        if (room && room.board[x][y] === null) {
             room.board[x][y] = playerSymbol;
             room.lastMove = { x, y, playerSymbol };
-
-            // Switch current player
-            room.currentPlayer = room.players[0].id === playerId ? room.players[1].id : room.players[0].id;
-
-            io.to(roomName).emit('moveMade', room.board, room.lastMove, playerSymbol);
+            io.to(roomName).emit('moveMade', room.board, room.lastMove);
             checkWin(roomName, x, y, playerSymbol);
         }
     });
@@ -75,13 +63,13 @@ io.on('connection', (socket) => {
 
 const checkWin = (roomName, x, y, playerSymbol) => {
     const room = rooms[roomName];
+    // Check logic for winning (horizontal, vertical, diagonal)
     const directions = [
         { x: 1, y: 0 },  // Horizontal
         { x: 0, y: 1 },  // Vertical
         { x: 1, y: 1 },  // Diagonal \
         { x: 1, y: -1 }  // Diagonal /
     ];
-
     for (let { x: dx, y: dy } of directions) {
         let count = 1;
 

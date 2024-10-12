@@ -1,6 +1,6 @@
 const socket = io();
 
-const submitNameButton = document.getElementById('submit-name'); // Select submit name button
+const submitNameButton = document.getElementById('submit-name');
 const createRoomButton = document.getElementById('create-room');
 const joinRoomButton = document.getElementById('join-room');
 const roomNameInput = document.getElementById('room-name');
@@ -13,14 +13,13 @@ const roomControlsDiv = document.getElementById('room-controls');
 
 let currentRoom;
 let playerSymbol;
-let playerName; // Store player name
+let playerName;
 
-// Event listener for submitting player name
 submitNameButton.addEventListener('click', () => {
-    playerName = playerNameInput.value.trim(); // Get the player's name
+    playerName = playerNameInput.value.trim();
     if (playerName) {
-        namePromptDiv.style.display = 'none'; // Hide the name prompt
-        roomControlsDiv.style.display = 'block'; // Show room controls
+        namePromptDiv.style.display = 'none';
+        roomControlsDiv.style.display = 'block';
     } else {
         alert('Please enter a valid name!');
     }
@@ -46,12 +45,14 @@ joinRoomButton.addEventListener('click', () => {
 
 socket.on('roomCreated', (roomName) => {
     alert(`Room ${roomName} created! Join using the same room name.`);
+    // Emit to the creator that the game should start
+    socket.emit('startGame', roomName);  // This line is important
 });
 
 socket.on('roomJoined', (roomName, players) => {
     alert(`Joined room ${roomName} as ${playerSymbol}`);
-    roomControlsDiv.style.display = 'none'; // Hide room controls
-    gameDiv.style.display = 'block'; // Show game board
+    roomControlsDiv.style.display = 'none';
+    gameDiv.style.display = 'block';
     initializeBoard();
 });
 
@@ -61,6 +62,7 @@ socket.on('playerJoined', (playerName) => {
 
 socket.on('startGame', () => {
     statusDiv.innerText = 'Game started!';
+    initializeBoard();  // Initialize board for all players
 });
 
 function initializeBoard() {
