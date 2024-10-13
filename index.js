@@ -1,55 +1,62 @@
+// index.js
 const express = require('express');
+const bodyParser = require('body-parser');
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-
+const cors = require('cors');
 const app = express();
-const db = new sqlite3.Database('./tictactoe/tictactoe.db');
+const PORT = process.env.PORT || 3000;
 
+app.use(cors());
+app.use(bodyParser.json());
 app.use(express.static('public'));
-app.use(express.json());
 
-// Update player stats after a match
-function updatePlayerStats(winnerName, loserName) {
-    const eloChange = 30; // Change in Elo rating
-    db.serialize(() => {
-        // Update winner's stats
-        db.run(`INSERT INTO players (name, wins, losses, elo) VALUES (?, 1, 0, ?) 
-                ON CONFLICT(name) DO UPDATE SET wins = wins + 1, elo = elo + ?`, 
-                [winnerName, eloChange, eloChange]);
+const db = new sqlite3.Database('./database.db');
 
-        // Update loser's stats
-        db.run(`INSERT INTO players (name, wins, losses, elo) VALUES (?, 0, 1, ?) 
-                ON CONFLICT(name) DO UPDATE SET losses = losses + 1, elo = elo - ?`, 
-                [loserName, eloChange, eloChange]);
+// Register user
+app.post('/register', (req, res) => {
+    const { username, password } = req.body;
+    db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], function(err) {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        res.json({ id: this.lastID });
     });
-}
+});
+
+// Login user
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
+        if (err || !row) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        res.json({ id: row.id, username: row.username });
+    });
+});
 
 // Get leaderboard
-function getLeaderboard(callback) {
-    db.all(`SELECT name, wins, losses, elo FROM players ORDER BY elo DESC`, [], (err, rows) => {
-        if (err) {
-            throw err;
-        }
-        callback(rows);
-    });
-}
-
-// Route to get the leaderboard
 app.get('/leaderboard', (req, res) => {
-    getLeaderboard((data) => {
-        res.json(data);
+    db.all('SELECT username, wins, losses FROM users ORDER BY wins DESC', [], (err, rows) => {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        res.json(rows);
     });
 });
 
-// Example route for updating player stats
-app.post('/updateStats', (req, res) => {
-    const { winner, loser } = req.body;
-    updatePlayerStats(winner, loser);
-    res.sendStatus(200);
+// Update game results
+app.post('/update-game', (req, res) => {
+    const { winnerId, player1Id, player2Id } = req.body;
+    db.run('INSERT INTO games (player1, player2, winner) VALUES (?, ?, ?)', [player1Id, player2Id, winnerId], function(err) {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        db.run('UPDATE users SET wins = wins + 1 WHERE id = ?', [winnerId]);
+        db.run('UPDATE users SET losses = losses + 1 WHERE id = ?', [winnerId === player1Id ? player2Id : player1Id]);
+        res.json({ gameId: this.lastID });
+    });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on http://localhost:${PORT}`);
 });

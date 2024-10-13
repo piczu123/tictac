@@ -7,12 +7,35 @@
     <title>Tic Tac Toe</title>
 </head>
 <body>
-    <div id="game-container">
+    <div class="container">
         <h1>Tic Tac Toe</h1>
-        <div id="game-board"></div>
-        <div id="leaderboard">
+        <div id="menu">
+            <button onclick="showRegister()">Register</button>
+            <button onclick="showLogin()">Login</button>
+        </div>
+        <div id="register" style="display: none;">
+            <h2>Register</h2>
+            <input type="text" id="reg-username" placeholder="Username" />
+            <input type="password" id="reg-password" placeholder="Password" />
+            <button onclick="register()">Register</button>
+            <button onclick="hideRegister()">Cancel</button>
+        </div>
+        <div id="login" style="display: none;">
+            <h2>Login</h2>
+            <input type="text" id="log-username" placeholder="Username" />
+            <input type="password" id="log-password" placeholder="Password" />
+            <button onclick="login()">Login</button>
+            <button onclick="hideLogin()">Cancel</button>
+        </div>
+        <div id="leaderboard" style="display: none;">
             <h2>Leaderboard</h2>
             <ul id="leaderboard-list"></ul>
+            <button onclick="hideLeaderboard()">Close</button>
+        </div>
+        <div id="game" style="display: none;">
+            <h2>Game</h2>
+            <div id="board"></div>
+            <button onclick="showLeaderboard()">Show Leaderboard</button>
         </div>
     </div>
     <script src="script.js"></script>

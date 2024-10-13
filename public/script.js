@@ -1,97 +1,133 @@
-const board = document.getElementById('game-board');
-const leaderboardList = document.getElementById('leaderboard-list');
 let currentPlayer = 'X';
-let playerName = prompt("Enter your name:");
+let board = Array(3).fill(null).map(() => Array(3).fill(null));
+let playerId = null;
 
-// Initialize game board
-function initGameBoard() {
-    for (let i = 0; i < 9; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        cell.addEventListener('click', () => handleCellClick(i));
-        board.appendChild(cell);
-    }
+function showRegister() {
+    document.getElementById('register').style.display = 'block';
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('leaderboard').style.display = 'none';
 }
 
-// Handle cell clicks
-function handleCellClick(index) {
-    const cell = board.children[index];
-    if (!cell.textContent) {
-        cell.textContent = currentPlayer;
-
-        // Check for win or draw
-        if (checkWin()) {
-            alert(`${currentPlayer} wins!`);
-            updateStats(currentPlayer, currentPlayer === 'X' ? 'O' : 'X');
-            resetGame();
-        } else if (isDraw()) {
-            alert("It's a draw!");
-            resetGame();
-        } else {
-            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-        }
-    }
+function hideRegister() {
+    document.getElementById('register').style.display = 'none';
 }
 
-// Check win logic
-function checkWin() {
-    const winPatterns = [
-        [0, 1, 2],
-        [3, 4, 5],
-        [6, 7, 8],
-        [0, 3, 6],
-        [1, 4, 7],
-        [2, 5, 8],
-        [0, 4, 8],
-        [2, 4, 6]
-    ];
-
-    return winPatterns.some(pattern => {
-        return pattern.every(index => board.children[index].textContent === currentPlayer);
-    });
+function showLogin() {
+    document.getElementById('login').style.display = 'block';
+    document.getElementById('register').style.display = 'none';
 }
 
-// Check draw logic
-function isDraw() {
-    return Array.from(board.children).every(cell => cell.textContent);
+function hideLogin() {
+    document.getElementById('login').style.display = 'none';
 }
 
-// Reset game
-function resetGame() {
-    Array.from(board.children).forEach(cell => cell.textContent = '');
-    currentPlayer = 'X';
-}
-
-// Fetch and display leaderboard
-function fetchLeaderboard() {
+function showLeaderboard() {
+    document.getElementById('leaderboard').style.display = 'block';
     fetch('/leaderboard')
         .then(response => response.json())
         .then(data => {
-            leaderboardList.innerHTML = ''; // Clear existing list
-            data.forEach(player => {
-                const listItem = document.createElement('li');
-                listItem.textContent = `${player.name}: Wins: ${player.wins}, Losses: ${player.losses}, Elo: ${player.elo}`;
-                leaderboardList.appendChild(listItem);
+            const leaderboardList = document.getElementById('leaderboard-list');
+            leaderboardList.innerHTML = '';
+            data.forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = `${user.username} - Wins: ${user.wins}, Losses: ${user.losses}`;
+                leaderboardList.appendChild(li);
             });
         });
 }
 
-// Call init and fetchLeaderboard on page load
-initGameBoard();
-fetchLeaderboard();
+function hideLeaderboard() {
+    document.getElementById('leaderboard').style.display = 'none';
+}
 
-// Update player stats
-function updateStats(winner, loser) {
-    fetch('/updateStats', {
+function register() {
+    const username = document.getElementById('reg-username').value;
+    const password = document.getElementById('reg-password').value;
+    fetch('/register', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ winner, loser })
-    })
-    .then(response => {
-        if (response.ok) {
-            fetchLeaderboard(); // Refresh leaderboard
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    }).then(response => response.json())
+      .then(data => {
+          alert('Registered successfully!');
+          hideRegister();
+      }).catch(err => alert(err.message));
+}
+
+function login() {
+    const username = document.getElementById('log-username').value;
+    const password = document.getElementById('log-password').value;
+    fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    }).then(response => response.json())
+      .then(data => {
+          playerId = data.id;
+          alert('Logged in successfully!');
+          document.getElementById('game').style.display = 'block';
+          createBoard();
+      }).catch(err => alert(err.message));
+}
+
+function createBoard() {
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = '';
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.onclick = () => makeMove(row, col);
+            boardDiv.appendChild(cell);
         }
-    });
+    }
+}
+
+function makeMove(row, col) {
+    if (board[row][col] || !playerId) return;
+    board[row][col] = currentPlayer;
+    const cell = document.querySelectorAll('.cell')[row * 3 + col];
+    cell.textContent = currentPlayer;
+
+    if (checkWinner()) {
+        alert(`Player ${currentPlayer} wins!`);
+        updateGame(playerId);
+        return;
+    }
+
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+}
+
+function checkWinner() {
+    // Check rows, columns, and diagonals for a win
+    for (let i = 0; i < 3; i++) {
+        if (board[i][0] && board[i][0] === board[i][1] && board[i][1] === board[i][2]) {
+            return true;
+        }
+        if (board[0][i] && board[0][i] === board[1][i] && board[1][i] === board[2][i]) {
+            return true;
+        }
+    }
+    if (board[0][0] && board[0][0] === board[1][1] && board[1][1] === board[2][2]) {
+        return true;
+    }
+    if (board[0][2] && board[0][2] === board[1][1] && board[1][1] === board[2][0]) {
+        return true;
+    }
+    return false;
+}
+
+function updateGame(winnerId) {
+    fetch('/update-game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            winnerId: playerId,
+            player1Id: playerId,
+            player2Id: 2 // Replace this with the actual player 2 ID if you implement multiple players
+        })
+    }).then(response => response.json())
+      .then(data => {
+          console.log('Game updated:', data);
+      }).catch(err => console.error(err));
 }
