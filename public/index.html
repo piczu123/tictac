@@ -3,27 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
     <title>Tic Tac Toe Multiplayer</title>
-    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="menu">
-        <h1>Tic Tac Toe</h1>
-        <div id="login">
-            <h2>Login</h2>
-            <input type="text" id="username" placeholder="Username">
-            <button id="loginBtn">Login</button>
-            <h2>Register</h2>
-            <input type="text" id="registerUsername" placeholder="Username">
-            <button id="registerBtn">Register</button>
+    <div id="container">
+        <div id="roomSetup">
+            <input type="text" id="roomName" placeholder="Room Name">
+            <button id="createRoomBtn">Create Room</button>
+            <button id="joinRoomBtn">Join Room</button>
         </div>
-    </div>
-    <div id="game" style="display: none;">
-        <h2>Welcome, <span id="playerName"></span></h2>
-        <div id="rank">ELO: <span id="playerElo">100</span></div>
         <div id="board"></div>
-        <div id="status"></div>
+        <div id="currentTurn"></div>
+        <div id="gameOver" style="display:none;"></div>
     </div>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

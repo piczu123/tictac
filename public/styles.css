@@ -1,28 +1,61 @@
 body {
   font-family: Arial, sans-serif;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
+  height: 100vh;
+  background-color: #f9f9f9;
+}
+
+#container {
+  text-align: center;
+}
+
+#roomSetup {
+  margin-bottom: 20px;
 }
 
 #board {
   display: grid;
   grid-template-columns: repeat(15, 40px);
-  gap: 5px;
+  grid-template-rows: repeat(15, 40px);
+  margin: 0 auto;
 }
 
-#board div {
+.cell {
   width: 40px;
   height: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   border: 1px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 24px;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
-#status {
-  margin-top: 10px;
-  font-size: 18px;
+.cell:hover {
+  background-color: #f0f0f0;
+}
+
+.cell.last-move {
+  background-color: #ffeb3b;
+}
+
+.winning-line {
+  position: absolute;
+  background-color: red;
+  z-index: 1;
+}
+
+#currentTurn {
+  margin-top: 20px;
+  font-size: 20px;
+}
+
+#gameOver {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  color: green;
 }
