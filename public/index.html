@@ -7,15 +7,21 @@
     <title>Tic Tac Toe Multiplayer</title>
 </head>
 <body>
-    <div id="container">
-        <div id="roomSetup">
-            <input type="text" id="roomName" placeholder="Room Name">
-            <button id="createRoomBtn">Create Room</button>
-            <button id="joinRoomBtn">Join Room</button>
+    <div id="app">
+        <div id="name-prompt">
+            <input type="text" id="player-name" placeholder="Your Name">
+            <button id="submit-name">Submit</button>
         </div>
-        <div id="board"></div>
-        <div id="currentTurn"></div>
-        <div id="gameOver" style="display:none;"></div>
+        <div id="room-controls" style="display:none;">
+            <input type="text" id="room-name" placeholder="Room Name">
+            <button id="create-room">Create Room</button>
+            <button id="join-room">Join Room</button>
+        </div>
+        <div id="game" style="display:none;">
+            <div id="player-names"></div>
+            <div id="board"></div>
+            <div id="status"></div>
+        </div>
     </div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>

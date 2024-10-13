@@ -1,61 +1,107 @@
 const socket = io();
-let playerSymbol = '';
 
-document.getElementById('createRoomBtn').onclick = () => {
-    const roomName = document.getElementById('roomName').value;
-    socket.emit('createRoom', roomName);
-};
+const playerNameInput = document.getElementById('player-name');
+const submitNameButton = document.getElementById('submit-name');
+const createRoomButton = document.getElementById('create-room');
+const joinRoomButton = document.getElementById('join-room');
+const roomNameInput = document.getElementById('room-name');
+const gameDiv = document.getElementById('game');
+const boardDiv = document.getElementById('board');
+const statusDiv = document.getElementById('status');
+const roomControlsDiv = document.getElementById('room-controls');
+const namePromptDiv = document.getElementById('name-prompt');
+const playerNamesDiv = document.getElementById('player-names');
 
-document.getElementById('joinRoomBtn').onclick = () => {
-    const roomName = document.getElementById('roomName').value;
-    socket.emit('joinRoom', roomName);
-};
+let currentRoom;
+let playerSymbol;
+let playerName;
 
-socket.on('gameState', (state) => {
-    console.log('Received game state:', state);
-    updateBoard(state.board);
-    document.getElementById('currentTurn').innerText = `Your Symbol: ${playerSymbol} - Current Turn: ${state.currentTurn}`;
-    document.getElementById('board').style.display = 'grid'; // Show the board
-
-    if (state.players.length === 2) {
-        playerSymbol = state.players[0] === socket.id ? 'X' : 'O';
-        document.getElementById('currentTurn').innerText = `Your Symbol: ${playerSymbol}`;
+// Prompt for player's name
+submitNameButton.addEventListener('click', () => {
+    playerName = playerNameInput.value.trim();
+    if (playerName) {
+        namePromptDiv.style.display = 'none';
+        roomControlsDiv.style.display = 'block';
     }
 });
 
-function createBoard() {
-    const boardDiv = document.getElementById('board');
+createRoomButton.addEventListener('click', () => {
+    const roomName = roomNameInput.value.trim();
+    if (roomName && playerName) {
+        socket.emit('createRoom', roomName, playerName);
+        currentRoom = roomName;
+        playerSymbol = 'X';
+    }
+});
+
+joinRoomButton.addEventListener('click', () => {
+    const roomName = roomNameInput.value.trim();
+    if (roomName && playerName) {
+        socket.emit('joinRoom', roomName, playerName);
+        currentRoom = roomName;
+        playerSymbol = 'O';
+    }
+});
+
+socket.on('roomCreated', (roomName) => {
+    alert(`Room ${roomName} created! Waiting for an opponent...`);
+});
+
+socket.on('roomJoined', (roomName, players) => {
+    alert(`Joined room ${roomName} as ${playerSymbol}`);
+    gameDiv.style.display = 'block';
+    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
+    initializeBoard();
+    statusDiv.innerText = `Game started! It's ${players[0].name}'s turn.`;
+});
+
+socket.on('playerJoined', (playerName) => {
+    statusDiv.innerText = `${playerName} joined the game!`;
+});
+
+socket.on('startGame', (players) => {
+    gameDiv.style.display = 'block';
+    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
+    initializeBoard();
+    const firstPlayer = Math.random() < 0.5 ? players[0] : players[1];
+    statusDiv.innerText = `Game started! It's ${firstPlayer.name}'s turn.`;
+});
+
+function initializeBoard() {
     boardDiv.innerHTML = '';
     for (let i = 0; i < 15; i++) {
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.addEventListener('click', () => {
-                socket.emit('makeMove', { roomName: document.getElementById('roomName').value, x: i, y: j, playerSymbol });
-            });
+            cell.dataset.x = i;
+            cell.dataset.y = j;
+            cell.addEventListener('click', () => makeMove(i, j));
             boardDiv.appendChild(cell);
         }
     }
 }
 
+function makeMove(x, y) {
+    socket.emit('makeMove', x, y, playerSymbol);
+}
+
+socket.on('moveMade', (board, lastMove, players) => {
+    updateBoard(board);
+    if (lastMove) {
+        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} (${players[lastMove.playerSymbol === 'X' ? 0 : 1].name}) at (${lastMove.x}, ${lastMove.y})`;
+    }
+});
+
 function updateBoard(board) {
-    const cells = document.querySelectorAll('.cell');
-    board.forEach((row, x) => {
-        row.forEach((cell, y) => {
-            const index = x * 15 + y;
-            cells[index].innerText = cell ? cell : '';
-        });
-    });
-    if (board.lastMove) {
-        const lastMoveCell = cells[board.lastMove.x * 15 + board.lastMove.y];
-        lastMoveCell.classList.add('last-move');
+    const cells = boardDiv.children;
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 15; j++) {
+            const cell = cells[i * 15 + j];
+            cell.innerText = board[i][j] ? board[i][j] : '';
+        }
     }
 }
 
-socket.on('gameOver', (winner) => {
-    document.getElementById('gameOver').innerText = `Player ${winner} wins!`;
-    document.getElementById('gameOver').style.display = 'block';
+socket.on('gameOver', (winnerSymbol) => {
+    statusDiv.innerText = `${winnerSymbol} wins!`;
+    boardDiv.style.pointerEvents = 'none';
 });
-
-createBoard();
-

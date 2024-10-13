@@ -1,61 +1,52 @@
 body {
   font-family: Arial, sans-serif;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
-  background-color: #f9f9f9;
+  background-color: #f0f0f0;
+  margin: 0;
 }
 
-#container {
+#app {
   text-align: center;
 }
 
-#roomSetup {
+#name-prompt,
+#room-controls {
   margin-bottom: 20px;
 }
 
 #board {
   display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
-  margin: 0 auto;
+  grid-template-columns: repeat(15, 30px);
+  gap: 1px;
+  margin: 20px auto;
 }
 
-.cell {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #000;
+#board div {
+  width: 30px;
+  height: 30px;
+  background-color: white;
+  border: 1px solid #ccc;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
-.cell:hover {
-  background-color: #f0f0f0;
+#board div:hover {
+  background-color: #e0e0e0;
 }
 
-.cell.last-move {
-  background-color: #ffeb3b;
+#status {
+  margin-top: 10px;
+  font-size: 18px;
 }
 
-.winning-line {
-  position: absolute;
-  background-color: red;
-  z-index: 1;
-}
-
-#currentTurn {
-  margin-top: 20px;
-  font-size: 20px;
-}
-
-#gameOver {
-  margin-top: 20px;
-  font-size: 24px;
+#player-names {
   font-weight: bold;
-  color: green;
+  margin-bottom: 10px;
 }
