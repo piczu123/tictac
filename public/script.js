@@ -58,3 +58,4 @@ socket.on('gameOver', (winner) => {
 });
 
 createBoard();
+
