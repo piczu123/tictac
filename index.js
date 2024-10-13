@@ -1,59 +1,83 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
+const bcrypt = require('bcrypt');
+const sqlite3 = require('sqlite3').verbose();
+const session = require('express-session');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const db = new sqlite3.Database('./tictactoe.db');
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-
-let rooms = {};
+app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }));
 
 // Bind to the port from the environment, or default to 3000 if not set
 const PORT = process.env.PORT || 3000;
 
+let rooms = {};
+
+// User Registration
+app.post('/register', (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [username, hashedPassword], function(err) {
+        if (err) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+        res.status(201).json({ id: this.lastID });
+    });
+});
+
+// User Login
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get(`SELECT * FROM users WHERE username = ?`, [username], (err, user) => {
+        if (err || !user || !bcrypt.compareSync(password, user.password)) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        req.session.userId = user.id; // Store user ID in session
+        res.json({ id: user.id, elo: user.elo });
+    });
+});
+
+// Matchmaking Queue
+app.post('/join-queue', (req, res) => {
+    const userId = req.session.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    db.run(`INSERT INTO queue (user_id) VALUES (?)`, [userId], function(err) {
+        if (err) return res.status(400).json({ error: 'Could not join queue' });
+        res.json({ message: 'Joined queue', id: this.lastID });
+    });
+
+    // Matchmaking Logic
+    db.all(`SELECT user_id FROM queue`, (err, rows) => {
+        if (rows.length >= 2) {
+            const player1Id = rows[0].user_id;
+            const player2Id = rows[1].user_id;
+
+            // Remove players from the queue
+            db.run(`DELETE FROM queue WHERE user_id IN (?, ?)`, [player1Id, player2Id]);
+
+            // Create a new room and start the game
+            const roomName = `room_${player1Id}_${player2Id}`;
+            rooms[roomName] = { players: [{ id: player1Id, symbol: 'X' }, { id: player2Id, symbol: 'O' }], board: Array(15).fill(null).map(() => Array(15).fill(null)), lastMove: null, turn: 'X' };
+
+            io.to(roomName).emit('startGame', rooms[roomName].players);
+        }
+    });
+});
+
+// WebSocket Connection
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
-    let currentRoom; // Store the current room for each socket
-    let playerName; // Store the player's name
-
-    socket.on('createRoom', (roomName, name) => {
-        if (!rooms[roomName]) {
-            rooms[roomName] = { 
-                players: [{ id: socket.id, name }], // Store the player in the room
-                board: Array(15).fill(null).map(() => Array(15).fill(null)), 
-                lastMove: null,
-                turn: null // Will be set when the second player joins
-            };
-            console.log(`Room created: ${roomName}`);
-        }
-        socket.join(roomName);
-        currentRoom = roomName; // Set the current room for this socket
-        playerName = name; // Store the player's name
-        socket.emit('roomCreated', roomName);
-    });
-
-    socket.on('joinRoom', (roomName, name) => {
-        if (rooms[roomName] && rooms[roomName].players.length < 2) {
-            rooms[roomName].players.push({ id: socket.id, name });
-            socket.join(roomName);
-            currentRoom = roomName; // Set the current room for this socket
-            playerName = name; // Store the player's name
-            io.to(roomName).emit('playerJoined', name);
-            socket.emit('roomJoined', roomName, rooms[roomName].players);
-            if (rooms[roomName].players.length === 2) {
-                rooms[roomName].turn = Math.random() < 0.5 ? 'X' : 'O'; // Randomly decide first player
-                io.to(roomName).emit('startGame', rooms[roomName].players);
-            }
-        } else {
-            socket.emit('roomFull', roomName);
-        }
-    });
-
-    socket.on('makeMove', (x, y, playerSymbol) => {
-        const room = rooms[currentRoom];
+    socket.on('makeMove', (roomName, x, y, playerSymbol) => {
+        const room = rooms[roomName];
         if (room && room.board[x][y] === null && room.turn === playerSymbol) {
             room.board[x][y] = playerSymbol;
             room.lastMove = { x, y, playerSymbol };
@@ -61,25 +85,32 @@ io.on('connection', (socket) => {
             // Switch turn
             room.turn = playerSymbol === 'X' ? 'O' : 'X';
 
-            io.to(currentRoom).emit('moveMade', room.board, room.lastMove, room.players);
-            checkWin(currentRoom, x, y, playerSymbol);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        for (let room in rooms) {
-            rooms[room].players = rooms[room].players.filter(player => player.id !== socket.id);
-            if (rooms[room].players.length === 0) {
-                delete rooms[room];
-            }
+            io.to(roomName).emit('moveMade', room.board, room.lastMove);
+            checkWin(roomName, x, y, playerSymbol);
         }
     });
 });
 
+// ELO Calculation
+function calculateELO(winnerId, loserId) {
+    const K = 32; // K-factor
+    db.get(`SELECT elo FROM users WHERE id = ?`, [winnerId], (err, winner) => {
+        if (err) return console.error(err);
+        db.get(`SELECT elo FROM users WHERE id = ?`, [loserId], (err, loser) => {
+            if (err) return console.error(err);
+            const expectedWinner = 1 / (1 + Math.pow(10, (loser.elo - winner.elo) / 400));
+            const expectedLoser = 1 / (1 + Math.pow(10, (winner.elo - loser.elo) / 400));
+            const newWinnerELO = Math.round(winner.elo + K * (1 - expectedWinner));
+            const newLoserELO = Math.round(loser.elo + K * (0 - expectedLoser));
+            db.run(`UPDATE users SET elo = ? WHERE id = ?`, [newWinnerELO, winnerId]);
+            db.run(`UPDATE users SET elo = ? WHERE id = ?`, [newLoserELO, loserId]);
+        });
+    });
+}
+
+// Win Check Logic
 const checkWin = (roomName, x, y, playerSymbol) => {
     const room = rooms[roomName];
-    // Check logic for winning (horizontal, vertical, diagonal)
     const directions = [
         { x: 1, y: 0 },  // Horizontal
         { x: 0, y: 1 },  // Vertical
@@ -101,6 +132,8 @@ const checkWin = (roomName, x, y, playerSymbol) => {
             }
         }
         if (count >= 5) {
+            room.winnerId = playerSymbol === 'X' ? room.players[0].id : room.players[1].id;
+            calculateELO(room.winnerId, room.winnerId === room.players[0].id ? room.players[1].id : room.players[0].id);
             io.to(roomName).emit('gameOver', playerSymbol);
             return;
         }

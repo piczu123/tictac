@@ -16,92 +16,124 @@ let currentRoom;
 let playerSymbol;
 let playerName;
 
-// Prompt for player's name
-submitNameButton.addEventListener('click', () => {
-    playerName = playerNameInput.value.trim();
-    if (playerName) {
-        namePromptDiv.style.display = 'none';
-        roomControlsDiv.style.display = 'block';
-    }
+// Registration and Login Handling
+document.getElementById('register-button').addEventListener('click', () => {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert('Registered successfully! You can now log in.');
+        }
+    });
 });
 
-createRoomButton.addEventListener('click', () => {
-    const roomName = roomNameInput.value.trim();
-    if (roomName && playerName) {
-        socket.emit('createRoom', roomName, playerName);
-        currentRoom = roomName;
-        playerSymbol = 'X';
-    }
+document.getElementById('login-button').addEventListener('click', () => {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            playerName = username;
+            playerSymbol = 'X'; // Default to 'X' for the first player
+            alert(`Logged in successfully! Your ELO: ${data.elo}`);
+            namePromptDiv.style.display = 'none';
+            roomControlsDiv.style.display = 'block';
+        }
+    });
 });
 
-joinRoomButton.addEventListener('click', () => {
-    const roomName = roomNameInput.value.trim();
-    if (roomName && playerName) {
-        socket.emit('joinRoom', roomName, playerName);
-        currentRoom = roomName;
-        playerSymbol = 'O';
-    }
+// Join Queue for Random Matchmaking
+document.getElementById('join-queue-button').addEventListener('click', () => {
+    fetch('/join-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert('Joined matchmaking queue!');
+        }
+    });
 });
 
-socket.on('roomCreated', (roomName) => {
-    alert(`Room ${roomName} created! Waiting for an opponent...`);
-});
-
-socket.on('roomJoined', (roomName, players) => {
-    alert(`Joined room ${roomName} as ${playerSymbol}`);
-    gameDiv.style.display = 'block';
-    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
-    initializeBoard();
-    statusDiv.innerText = `Game started! It's ${players[0].name}'s turn.`;
-});
-
-socket.on('playerJoined', (playerName) => {
-    statusDiv.innerText = `${playerName} joined the game!`;
-});
-
+// Socket Events
 socket.on('startGame', (players) => {
-    gameDiv.style.display = 'block';
-    playerNamesDiv.innerText = `${players[0].name} (X) vs ${players[1].name} (O)`;
+    currentRoom = players.map(p => p.id);
+    boardDiv.innerHTML = '';
+    players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.innerText = `Player ${player.id}: ${player.symbol}`;
+        playerNamesDiv.appendChild(playerDiv);
+    });
     initializeBoard();
-    const firstPlayer = Math.random() < 0.5 ? players[0] : players[1];
-    statusDiv.innerText = `Game started! It's ${firstPlayer.name}'s turn.`;
+});
+
+socket.on('moveMade', (board, lastMove) => {
+    renderBoard(board);
+    if (lastMove) {
+        // Highlight last move, etc.
+    }
+});
+
+socket.on('gameOver', (winnerSymbol) => {
+    alert(`Game Over! Player ${winnerSymbol} wins!`);
+    resetGame();
 });
 
 function initializeBoard() {
-    boardDiv.innerHTML = '';
     for (let i = 0; i < 15; i++) {
+        const row = document.createElement('div');
+        row.className = 'board-row';
         for (let j = 0; j < 15; j++) {
             const cell = document.createElement('div');
+            cell.className = 'board-cell';
             cell.dataset.x = i;
             cell.dataset.y = j;
-            cell.addEventListener('click', () => makeMove(i, j));
-            boardDiv.appendChild(cell);
+            cell.addEventListener('click', handleCellClick);
+            row.appendChild(cell);
         }
+        boardDiv.appendChild(row);
     }
 }
 
-function makeMove(x, y) {
-    socket.emit('makeMove', x, y, playerSymbol);
+function handleCellClick(event) {
+    const x = event.target.dataset.x;
+    const y = event.target.dataset.y;
+    socket.emit('makeMove', currentRoom, x, y, playerSymbol);
 }
 
-socket.on('moveMade', (board, lastMove, players) => {
-    updateBoard(board);
-    if (lastMove) {
-        statusDiv.innerText = `Last move: ${lastMove.playerSymbol} (${players[lastMove.playerSymbol === 'X' ? 0 : 1].name}) at (${lastMove.x}, ${lastMove.y})`;
-    }
-});
-
-function updateBoard(board) {
-    const cells = boardDiv.children;
+function renderBoard(board) {
+    boardDiv.innerHTML = ''; // Clear existing board
     for (let i = 0; i < 15; i++) {
+        const row = document.createElement('div');
+        row.className = 'board-row';
         for (let j = 0; j < 15; j++) {
-            const cell = cells[i * 15 + j];
-            cell.innerText = board[i][j] ? board[i][j] : '';
+            const cell = document.createElement('div');
+            cell.className = 'board-cell';
+            cell.innerText = board[i][j] || '';
+            row.appendChild(cell);
         }
+        boardDiv.appendChild(row);
     }
 }
 
-socket.on('gameOver', (winnerSymbol) => {
-    statusDiv.innerText = `${winnerSymbol} wins!`;
-    boardDiv.style.pointerEvents = 'none';
-});
+function resetGame() {
+    // Reset the game state here
+}

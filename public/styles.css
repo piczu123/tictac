@@ -50,3 +50,29 @@ body {
   font-weight: bold;
   margin-bottom: 10px;
 }
+/* Existing styles... */
+
+/* New styles for registration and login */
+#name-prompt {
+  display: flex;
+  flex-direction: column;
+}
+
+#room-controls {
+  display: none;
+}
+
+.board-cell {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #ccc;
+  display: inline-block;
+  text-align: center;
+  line-height: 30px;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.board-row {
+  display: flex;
+}
