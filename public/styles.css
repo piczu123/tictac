@@ -1,24 +1,25 @@
 body {
   font-family: Arial, sans-serif;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: #f4f4f4;
 }
 
-.container {
-  margin: 0 auto;
-  width: 300px;
-}
-
-#board {
+#gameBoard {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-  margin-top: 20px;
+  grid-template-columns: repeat(15, 40px);
+  grid-template-rows: repeat(15, 40px);
+  gap: 2px;
 }
 
-.cell {
-  width: 60px;
-  height: 60px;
-  background-color: #f0f0f0;
+#gameBoard div {
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border: 1px solid #ccc;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -26,6 +27,8 @@ body {
   cursor: pointer;
 }
 
-.cell:hover {
-  background-color: #ddd;
+#status {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: bold;
 }

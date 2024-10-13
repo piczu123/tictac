@@ -1,62 +1,72 @@
-// index.js
 const express = require('express');
-const bodyParser = require('body-parser');
-const sqlite3 = require('sqlite3').verbose();
-const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
+const path = require('path');
+const db = require('./database');
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = socketIo(server);
 
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-const db = new sqlite3.Database('./database.db');
+let waitingPlayers = [];
 
-// Register user
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
     const { username, password } = req.body;
-    db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, password], function(err) {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
-        res.json({ id: this.lastID });
-    });
+    try {
+        await db.createUser(username, password);
+        res.status(201).send('User created');
+    } catch (err) {
+        res.status(400).send('Error creating user');
+    }
 });
 
-// Login user
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, row) => {
-        if (err || !row) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+    const user = await db.getUser(username);
+    if (user && user.password === password) {
+        res.status(200).send('Login successful');
+    } else {
+        res.status(401).send('Invalid credentials');
+    }
+});
+
+io.on('connection', (socket) => {
+    console.log('New player connected');
+
+    socket.on('joinGame', (username) => {
+        if (waitingPlayers.length > 0) {
+            const opponentSocketId = waitingPlayers.pop();
+            socket.emit('startGame', { opponent: opponentSocketId });
+            io.to(opponentSocketId).emit('startGame', { opponent: socket.id });
+        } else {
+            waitingPlayers.push(socket.id);
+            socket.emit('waitingForOpponent');
         }
-        res.json({ id: row.id, username: row.username });
+    });
+
+    socket.on('makeMove', async (data) => {
+        socket.to(data.opponentId).emit('moveMade', data);
+        // Check for winner and update stats
+        // Assuming you have logic to check the winner
+        const winner = checkWinner(data.board); // Implement this function
+        if (winner) {
+            await db.updateUserStats(data.player, 'win');
+            await db.updateUserStats(data.opponent, 'loss');
+            io.to(data.opponentId).emit('gameOver', { winner });
+            io.to(socket.id).emit('gameOver', { winner });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Player disconnected');
+        waitingPlayers = waitingPlayers.filter(id => id !== socket.id);
     });
 });
 
-// Get leaderboard
-app.get('/leaderboard', (req, res) => {
-    db.all('SELECT username, wins, losses FROM users ORDER BY wins DESC', [], (err, rows) => {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
-        res.json(rows);
-    });
-});
-
-// Update game results
-app.post('/update-game', (req, res) => {
-    const { winnerId, player1Id, player2Id } = req.body;
-    db.run('INSERT INTO games (player1, player2, winner) VALUES (?, ?, ?)', [player1Id, player2Id, winnerId], function(err) {
-        if (err) {
-            return res.status(400).json({ error: err.message });
-        }
-        db.run('UPDATE users SET wins = wins + 1 WHERE id = ?', [winnerId]);
-        db.run('UPDATE users SET losses = losses + 1 WHERE id = ?', [winnerId === player1Id ? player2Id : player1Id]);
-        res.json({ gameId: this.lastID });
-    });
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+server.listen(3000, () => {
+    console.log('Server is running on port 3000');
 });
