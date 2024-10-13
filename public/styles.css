@@ -1,78 +1,55 @@
 body {
   font-family: Arial, sans-serif;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   height: 100vh;
   background-color: #f0f0f0;
-  margin: 0;
 }
 
 #app {
   text-align: center;
 }
 
-#name-prompt,
-#room-controls {
-  margin-bottom: 20px;
+#menu, #game {
+  margin: 20px;
+}
+
+input {
+  display: block;
+  margin: 10px auto;
+  padding: 10px;
+  width: 200px;
+}
+
+button {
+  padding: 10px 20px;
 }
 
 #board {
   display: grid;
-  grid-template-columns: repeat(15, 30px);
-  gap: 1px;
-  margin: 20px auto;
+  grid-template-columns: repeat(15, 40px);
+  grid-gap: 5px;
+  margin: auto;
 }
 
-#board div {
-  width: 30px;
-  height: 30px;
+.cell {
+  width: 40px;
+  height: 40px;
   background-color: white;
-  border: 1px solid #ccc;
+  border: 1px solid #333;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   font-size: 24px;
   cursor: pointer;
 }
 
-#board div:hover {
+.cell:hover {
   background-color: #e0e0e0;
 }
 
 #status {
-  margin-top: 10px;
+  margin-top: 20px;
   font-size: 18px;
-}
-
-#player-names {
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-/* Existing styles... */
-
-/* New styles for registration and login */
-#name-prompt {
-  display: flex;
-  flex-direction: column;
-}
-
-#room-controls {
-  display: none;
-}
-
-.board-cell {
-  width: 30px;
-  height: 30px;
-  border: 1px solid #ccc;
-  display: inline-block;
-  text-align: center;
-  line-height: 30px;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.board-row {
-  display: flex;
 }

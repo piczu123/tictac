@@ -3,30 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe Multiplayer</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js" defer></script>
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="name-prompt">
-        <h2>Register or Login</h2>
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="password" id="password" placeholder="Password" required>
-        <button id="register-button">Register</button>
-        <button id="login-button">Login</button>
-    </div>
+    <div id="app">
+        <h1>Tic Tac Toe</h1>
+        <div id="menu">
+            <h2>Login</h2>
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="loginButton">Login</button>
 
-    <div id="room-controls" style="display:none;">
-        <h2>Room Controls</h2>
-        <button id="join-queue-button">Join Matchmaking Queue</button>
-        <div id="player-names"></div>
-    </div>
+            <h2>Register</h2>
+            <input type="text" id="registerUsername" placeholder="Username">
+            <input type="password" id="registerPassword" placeholder="Password">
+            <button id="registerButton">Register</button>
+        </div>
 
-    <div id="game" style="display:none;">
-        <h2>Game Board</h2>
-        <div id="board"></div>
-        <div id="status"></div>
+        <div id="game" style="display:none;">
+            <h2 id="waitingMessage"></h2>
+            <div id="board"></div>
+            <div id="status"></div>
+        </div>
     </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

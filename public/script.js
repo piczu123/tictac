@@ -1,139 +1,79 @@
 const socket = io();
+const boardElement = document.getElementById('board');
+const gameElement = document.getElementById('game');
+const menuElement = document.getElementById('menu');
+const waitingMessage = document.getElementById('waitingMessage');
+const statusElement = document.getElementById('status');
+const loginButton = document.getElementById('loginButton');
+const registerButton = document.getElementById('registerButton');
 
-const playerNameInput = document.getElementById('player-name');
-const submitNameButton = document.getElementById('submit-name');
-const createRoomButton = document.getElementById('create-room');
-const joinRoomButton = document.getElementById('join-room');
-const roomNameInput = document.getElementById('room-name');
-const gameDiv = document.getElementById('game');
-const boardDiv = document.getElementById('board');
-const statusDiv = document.getElementById('status');
-const roomControlsDiv = document.getElementById('room-controls');
-const namePromptDiv = document.getElementById('name-prompt');
-const playerNamesDiv = document.getElementById('player-names');
+// Initialize the game board
+const initBoard = () => {
+    boardElement.innerHTML = '';
+    for (let i = 0; i < 15 * 15; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.index = i;
+        cell.addEventListener('click', handleCellClick);
+        boardElement.appendChild(cell);
+    }
+};
 
-let currentRoom;
-let playerSymbol;
-let playerName;
+// Handle cell click
+const handleCellClick = (event) => {
+    const cell = event.target;
+    const index = cell.dataset.index;
+    if (!cell.textContent) {
+        socket.emit('makeMove', { roomId: roomId, player: currentPlayer, position: index });
+        cell.textContent = currentPlayer; // Display player's move
+    }
+};
 
-// Registration and Login Handling
-document.getElementById('register-button').addEventListener('click', () => {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    fetch('/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            alert('Registered successfully! You can now log in.');
-        }
-    });
+// Login functionality
+loginButton.addEventListener('click', () => {
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    socket.emit('login', { username, password });
 });
 
-document.getElementById('login-button').addEventListener('click', () => {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            playerName = username;
-            playerSymbol = 'X'; // Default to 'X' for the first player
-            alert(`Logged in successfully! Your ELO: ${data.elo}`);
-            namePromptDiv.style.display = 'none';
-            roomControlsDiv.style.display = 'block';
-        }
-    });
+// Registration functionality
+registerButton.addEventListener('click', () => {
+    const username = document.getElementById('registerUsername').value;
+    const password = document.getElementById('registerPassword').value;
+    socket.emit('register', { username, password });
 });
 
-// Join Queue for Random Matchmaking
-document.getElementById('join-queue-button').addEventListener('click', () => {
-    fetch('/join-queue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert(data.error);
-        } else {
-            alert('Joined matchmaking queue!');
-        }
-    });
+// Handle game start
+socket.on('startGame', ({ player1, player2, roomId }) => {
+    currentPlayer = 'X'; // Assign X to the first player
+    initBoard();
+    gameElement.style.display = 'block';
+    menuElement.style.display = 'none';
+    waitingMessage.textContent = `Game started between ${player1} and ${player2}.`;
 });
 
-// Socket Events
-socket.on('startGame', (players) => {
-    currentRoom = players.map(p => p.id);
-    boardDiv.innerHTML = '';
-    players.forEach(player => {
-        const playerDiv = document.createElement('div');
-        playerDiv.innerText = `Player ${player.id}: ${player.symbol}`;
-        playerNamesDiv.appendChild(playerDiv);
-    });
-    initializeBoard();
+// Handle moves made by the opponent
+socket.on('moveMade', ({ player, position }) => {
+    const cell = boardElement.children[position];
+    cell.textContent = player; // Display the opponent's move
 });
 
-socket.on('moveMade', (board, lastMove) => {
-    renderBoard(board);
-    if (lastMove) {
-        // Highlight last move, etc.
+// Handle login response
+socket.on('loginResponse', (data) => {
+    if (data.success) {
+        socket.emit('joinQueue', data.username);
+        menuElement.style.display = 'none';
+        waitingMessage.textContent = 'Waiting for an opponent...';
+    } else {
+        alert(data.message);
     }
 });
 
-socket.on('gameOver', (winnerSymbol) => {
-    alert(`Game Over! Player ${winnerSymbol} wins!`);
-    resetGame();
+// Handle registration response
+socket.on('registerResponse', (data) => {
+    if (data.success) {
+        alert('Registration successful! You can now log in.');
+    } else {
+        alert(data.message);
+    }
 });
-
-function initializeBoard() {
-    for (let i = 0; i < 15; i++) {
-        const row = document.createElement('div');
-        row.className = 'board-row';
-        for (let j = 0; j < 15; j++) {
-            const cell = document.createElement('div');
-            cell.className = 'board-cell';
-            cell.dataset.x = i;
-            cell.dataset.y = j;
-            cell.addEventListener('click', handleCellClick);
-            row.appendChild(cell);
-        }
-        boardDiv.appendChild(row);
-    }
-}
-
-function handleCellClick(event) {
-    const x = event.target.dataset.x;
-    const y = event.target.dataset.y;
-    socket.emit('makeMove', currentRoom, x, y, playerSymbol);
-}
-
-function renderBoard(board) {
-    boardDiv.innerHTML = ''; // Clear existing board
-    for (let i = 0; i < 15; i++) {
-        const row = document.createElement('div');
-        row.className = 'board-row';
-        for (let j = 0; j < 15; j++) {
-            const cell = document.createElement('div');
-            cell.className = 'board-cell';
-            cell.innerText = board[i][j] || '';
-            row.appendChild(cell);
-        }
-        boardDiv.appendChild(row);
-    }
-}
-
-function resetGame() {
-    // Reset the game state here
-}
