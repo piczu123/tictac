@@ -11,33 +11,18 @@ body {
   text-align: center;
 }
 
-#menu, #game {
-  margin: 20px;
-}
-
-input {
-  display: block;
-  margin: 10px auto;
-  padding: 10px;
-  width: 200px;
-}
-
-button {
-  padding: 10px 20px;
-}
-
 #board {
   display: grid;
   grid-template-columns: repeat(15, 40px);
   grid-gap: 5px;
-  margin: auto;
+  margin: 20px auto;
 }
 
 .cell {
   width: 40px;
   height: 40px;
   background-color: white;
-  border: 1px solid #333;
+  border: 1px solid #ccc;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -49,7 +34,10 @@ button {
   background-color: #e0e0e0;
 }
 
-#status {
-  margin-top: 20px;
-  font-size: 18px;
+#error-message {
+  color: red;
+}
+
+#status-message {
+  font-weight: bold;
 }

@@ -1,79 +1,84 @@
-const socket = io();
+const loginForm = document.getElementById('login-form');
+const registerForm = document.getElementById('register-form');
+const playerNameDisplay = document.getElementById('player-name');
+const gameContainer = document.getElementById('game-container');
+const matchmakingButton = document.getElementById('find-opponent');
+const waitingMessage = document.getElementById('waiting-message');
+const gameBoard = document.getElementById('game-board');
 const boardElement = document.getElementById('board');
-const gameElement = document.getElementById('game');
-const menuElement = document.getElementById('menu');
-const waitingMessage = document.getElementById('waitingMessage');
-const statusElement = document.getElementById('status');
-const loginButton = document.getElementById('loginButton');
-const registerButton = document.getElementById('registerButton');
+const statusMessage = document.getElementById('status-message');
+const errorMessageDisplay = document.getElementById('error-message');
 
-// Initialize the game board
-const initBoard = () => {
+let username;
+let socket = io.connect('http://localhost:14053');
+
+loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('login-username').value;
+    socket.emit('login', usernameInput);
+});
+
+registerForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('register-username').value;
+    const passwordInput = document.getElementById('register-password').value;
+    socket.emit('register', { username: usernameInput, password: passwordInput });
+});
+
+matchmakingButton.addEventListener('click', function () {
+    waitingMessage.style.display = 'block';
+    socket.emit('findOpponent', username);
+});
+
+function createBoard() {
     boardElement.innerHTML = '';
-    for (let i = 0; i < 15 * 15; i++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.dataset.index = i;
-        cell.addEventListener('click', handleCellClick);
-        boardElement.appendChild(cell);
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 15; j++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = `${i}-${j}`;
+            cell.addEventListener('click', handleCellClick);
+            boardElement.appendChild(cell);
+        }
     }
-};
+}
 
-// Handle cell click
-const handleCellClick = (event) => {
-    const cell = event.target;
-    const index = cell.dataset.index;
-    if (!cell.textContent) {
-        socket.emit('makeMove', { roomId: roomId, player: currentPlayer, position: index });
-        cell.textContent = currentPlayer; // Display player's move
+function handleCellClick(e) {
+    const cell = e.target;
+    if (cell.textContent === '' && socket) {
+        socket.emit('makeMove', { index: cell.dataset.index, player: username });
     }
-};
+}
 
-// Login functionality
-loginButton.addEventListener('click', () => {
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    socket.emit('login', { username, password });
+socket.on('loginSuccess', function (player) {
+    username = player;
+    playerNameDisplay.textContent = username;
+    gameContainer.style.display = 'block';
+    document.getElementById('login-register').style.display = 'none';
 });
 
-// Registration functionality
-registerButton.addEventListener('click', () => {
-    const username = document.getElementById('registerUsername').value;
-    const password = document.getElementById('registerPassword').value;
-    socket.emit('register', { username, password });
+socket.on('registerSuccess', function () {
+    alert('Registration successful! You can now log in.');
 });
 
-// Handle game start
-socket.on('startGame', ({ player1, player2, roomId }) => {
-    currentPlayer = 'X'; // Assign X to the first player
-    initBoard();
-    gameElement.style.display = 'block';
-    menuElement.style.display = 'none';
-    waitingMessage.textContent = `Game started between ${player1} and ${player2}.`;
+socket.on('loginError', function (message) {
+    errorMessageDisplay.textContent = message;
 });
 
-// Handle moves made by the opponent
-socket.on('moveMade', ({ player, position }) => {
-    const cell = boardElement.children[position];
-    cell.textContent = player; // Display the opponent's move
+socket.on('opponentFound', function (opponent) {
+    waitingMessage.style.display = 'none';
+    gameBoard.style.display = 'block';
+    createBoard();
+    statusMessage.textContent = `${username}'s turn`;
 });
 
-// Handle login response
-socket.on('loginResponse', (data) => {
-    if (data.success) {
-        socket.emit('joinQueue', data.username);
-        menuElement.style.display = 'none';
-        waitingMessage.textContent = 'Waiting for an opponent...';
-    } else {
-        alert(data.message);
-    }
+socket.on('moveMade', function (data) {
+    const cell = document.querySelector(`.cell[data-index="${data.index}"]`);
+    cell.textContent = data.player === username ? 'X' : 'O';
+    statusMessage.textContent = data.nextTurn === username ? `${data.nextTurn}'s turn` : `${data.player}'s turn`;
 });
 
-// Handle registration response
-socket.on('registerResponse', (data) => {
-    if (data.success) {
-        alert('Registration successful! You can now log in.');
-    } else {
-        alert(data.message);
-    }
+socket.on('gameOver', function (winner) {
+    statusMessage.textContent = winner ? `${winner} wins!` : "It's a draw!";
+    boardElement.querySelectorAll('.cell').forEach(cell => cell.style.pointerEvents = 'none');
 });
