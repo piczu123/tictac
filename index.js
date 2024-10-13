@@ -1,72 +1,62 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const path = require('path');
-const db = require('./database');
-
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
 
+const db = new sqlite3.Database('./tictactoe.db');
+
+app.use(express.static('public'));
 app.use(express.json());
+
+// Middleware to parse JSON bodies
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
 
-let waitingPlayers = [];
-
-app.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        await db.createUser(username, password);
-        res.status(201).send('User created');
-    } catch (err) {
-        res.status(400).send('Error creating user');
-    }
+// Set up the database
+db.serialize(() => {
+    db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, elo INTEGER DEFAULT 100)");
 });
 
-app.post('/login', async (req, res) => {
+// User registration
+app.post('/register', (req, res) => {
     const { username, password } = req.body;
-    const user = await db.getUser(username);
-    if (user && user.password === password) {
-        res.status(200).send('Login successful');
-    } else {
-        res.status(401).send('Invalid credentials');
-    }
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hashedPassword], function (err) {
+        if (err) {
+            return res.status(400).send("User already exists");
+        }
+        res.status(201).send({ id: this.lastID, username });
+    });
 });
 
+// User login
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+        if (err || !user) {
+            return res.status(400).send("User not found");
+        }
+        if (!bcrypt.compareSync(password, user.password)) {
+            return res.status(400).send("Incorrect password");
+        }
+        res.send({ id: user.id, username: user.username, elo: user.elo });
+    });
+});
+
+// Socket.IO for real-time game interaction
 io.on('connection', (socket) => {
-    console.log('New player connected');
-
-    socket.on('joinGame', (username) => {
-        if (waitingPlayers.length > 0) {
-            const opponentSocketId = waitingPlayers.pop();
-            socket.emit('startGame', { opponent: opponentSocketId });
-            io.to(opponentSocketId).emit('startGame', { opponent: socket.id });
-        } else {
-            waitingPlayers.push(socket.id);
-            socket.emit('waitingForOpponent');
-        }
+    console.log('a user connected');
+    
+    // Handle game matchmaking logic here
+    socket.on('joinQueue', (username) => {
+        socket.username = username;
+        // Logic for joining a queue and matching players
     });
 
-    socket.on('makeMove', async (data) => {
-        socket.to(data.opponentId).emit('moveMade', data);
-        // Check for winner and update stats
-        // Assuming you have logic to check the winner
-        const winner = checkWinner(data.board); // Implement this function
-        if (winner) {
-            await db.updateUserStats(data.player, 'win');
-            await db.updateUserStats(data.opponent, 'loss');
-            io.to(data.opponentId).emit('gameOver', { winner });
-            io.to(socket.id).emit('gameOver', { winner });
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Player disconnected');
-        waitingPlayers = waitingPlayers.filter(id => id !== socket.id);
-    });
+    // Add more socket event handlers for game actions, etc.
 });
 
-server.listen(3000, () => {
-    console.log('Server is running on port 3000');
+http.listen(3000, () => {
+    console.log('listening on *:3000');
 });

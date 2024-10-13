@@ -1,60 +1,104 @@
-const socket = io();
-const usernameInput = document.getElementById('username');
-const joinGameButton = document.getElementById('joinGame');
-const waitingDiv = document.getElementById('waiting');
-const gameDiv = document.getElementById('game');
-const gameBoard = document.getElementById('gameBoard');
-const statusDiv = document.getElementById('status');
+const loginBtn = document.getElementById("loginBtn");
+const registerBtn = document.getElementById("registerBtn");
+const playerNameElement = document.getElementById("playerName");
+const playerEloElement = document.getElementById("playerElo");
+const statusElement = document.getElementById("status");
+const boardElement = document.getElementById("board");
+const gameElement = document.getElementById("game");
+const menuElement = document.getElementById("menu");
 
-joinGameButton.onclick = () => {
-    const username = usernameInput.value;
-    if (username) {
-        socket.emit('joinGame', username);
-        waitingDiv.style.display = 'block';
-        document.getElementById('menu').style.display = 'none';
-    }
-};
+let currentPlayer;
+let playerElo = 100;
+let board = Array(15).fill(null).map(() => Array(15).fill(null));
+let currentTurn = 'X';
+let gameActive = false;
 
-socket.on('waitingForOpponent', () => {
-    waitingDiv.style.display = 'block';
-});
-
-socket.on('startGame', (data) => {
-    waitingDiv.style.display = 'none';
-    gameDiv.style.display = 'block';
-    startGame(data.opponent);
-});
-
-const startGame = (opponent) => {
-    gameBoard.innerHTML = '';
-    const gameState = Array(15).fill(null).map(() => Array(15).fill(null));
-    let currentPlayer = 'X'; // Example symbol for the first player
-
-    for (let i = 0; i < 15 * 15; i++) {
-        const cell = document.createElement('div');
-        cell.onclick = () => handleCellClick(i, currentPlayer);
-        gameBoard.appendChild(cell);
-    }
-
-    const handleCellClick = (index, player) => {
-        const row = Math.floor(index / 15);
-        const col = index % 15;
-
-        if (!gameState[row][col]) {
-            gameState[row][col] = player;
-            cell.textContent = player;
-            socket.emit('makeMove', { index, player, opponentId: opponent, board: gameState });
-            currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Toggle player
+function createBoard() {
+    boardElement.innerHTML = '';
+    for (let i = 0; i < 15; i++) {
+        for (let j = 0; j < 15; j++) {
+            const cell = document.createElement('div');
+            cell.dataset.row = i;
+            cell.dataset.col = j;
+            cell.addEventListener('click', handleCellClick);
+            boardElement.appendChild(cell);
         }
-    };
-};
+    }
+}
 
-socket.on('moveMade', (data) => {
-    const cell = gameBoard.children[data.index];
-    cell.textContent = data.player;
-    // Toggle current player if needed
+function handleCellClick(event) {
+    const row = event.target.dataset.row;
+    const col = event.target.dataset.col;
+    
+    if (board[row][col] || !gameActive) return;
+
+    board[row][col] = currentTurn;
+    event.target.textContent = currentTurn;
+
+    if (checkWin(row, col)) {
+        statusElement.textContent = `${currentTurn} wins!`;
+        gameActive = false;
+        updateElo(currentTurn === 'X' ? 10 : -10);
+    } else if (board.flat().every(cell => cell)) {
+        statusElement.textContent = "It's a draw!";
+        gameActive = false;
+    } else {
+        currentTurn = currentTurn === 'X' ? 'O' : 'X';
+        statusElement.textContent = `It's ${currentTurn}'s turn.`;
+    }
+}
+
+function checkWin(row, col) {
+    // Check for winning logic (horizontal, vertical, diagonal)
+    const directions = [
+        [[0, 1], [0, -1]], // Horizontal
+        [[1, 0], [-1, 0]], // Vertical
+        [[1, 1], [-1, -1]], // Diagonal \
+        [[1, -1], [-1, 1]] // Diagonal /
+    ];
+
+    for (const direction of directions) {
+        let count = 1;
+
+        for (const [dx, dy] of direction) {
+            let r = row;
+            let c = col;
+
+            while (true) {
+                r += dx;
+                c += dy;
+                if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== currentTurn) break;
+                count++;
+            }
+        }
+
+        if (count >= 5) return true;
+    }
+    return false;
+}
+
+function updateElo(delta) {
+    playerElo += delta;
+    playerEloElement.textContent = playerElo;
+}
+
+loginBtn.addEventListener("click", () => {
+    const username = document.getElementById("username").value;
+    if (username) {
+        currentPlayer = username;
+        playerNameElement.textContent = currentPlayer;
+        gameElement.style.display = 'block';
+        menuElement.style.display = 'none';
+        createBoard();
+        gameActive = true;
+        statusElement.textContent = `It's ${currentTurn}'s turn.`;
+    }
 });
 
-socket.on('gameOver', (data) => {
-    alert(`Game Over! ${data.winner} wins!`);
+registerBtn.addEventListener("click", () => {
+    const username = document.getElementById("registerUsername").value;
+    if (username) {
+        alert(`Registered ${username}. You can now log in!`);
+        document.getElementById("registerUsername").value = '';
+    }
 });
