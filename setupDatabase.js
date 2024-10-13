@@ -1,7 +1,9 @@
 const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./tictactoe.db');
+const db = new sqlite3.Database(':memory:');
 
-// Set up any initial data or tables here if needed
-db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT)');
+db.serialize(() => {
+    db.run('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT)');
+    console.log('Database setup complete.');
+});
 
 db.close();

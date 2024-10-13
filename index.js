@@ -1,23 +1,22 @@
 const express = require('express');
-const path = require('path');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
+const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
-
 const app = express();
-const port = process.env.PORT || 3000;
+const db = new sqlite3.Database(':memory:');
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static('public'));
 
-const db = new sqlite3.Database('./tictactoe.db');
-
-// Create users table if it doesn't exist
-db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT)');
-
-// Serve login and registration page
+// Serve login/register page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Serve queue page
+app.get('/queue', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'queue.html'));
 });
 
 // Handle registration
@@ -29,7 +28,7 @@ app.post('/register', (req, res) => {
         if (err) {
             return res.status(400).send('User already exists.');
         }
-        res.redirect('/queue');
+        res.redirect('/queue'); // Redirect to the queue page
     });
 });
 
@@ -41,16 +40,17 @@ app.post('/login', (req, res) => {
         if (err || !user || !bcrypt.compareSync(password, user.password)) {
             return res.status(401).send('Login failed');
         }
-        res.redirect('/queue');
+        res.redirect('/queue'); // Redirect to the queue page
     });
 });
 
-// Serve queue page
-app.get('/queue', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'queue.html'));
+// Initialize database
+db.serialize(() => {
+    db.run('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, password TEXT)');
 });
 
 // Start the server
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
