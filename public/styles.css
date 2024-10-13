@@ -1,43 +1,48 @@
 body {
   font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #f0f0f0;
 }
 
-#app {
-  text-align: center;
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-#board {
-  display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-gap: 5px;
-  margin: 20px auto;
+h1 {
+  margin-bottom: 20px;
 }
 
-.cell {
-  width: 40px;
-  height: 40px;
-  background-color: white;
-  border: 1px solid #ccc;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 24px;
+label {
+  display: block;
+  margin: 10px 0 5px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 10px 15px;
+  margin: 5px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
   cursor: pointer;
 }
 
-.cell:hover {
-  background-color: #e0e0e0;
+button:hover {
+  background-color: #218838;
 }
 
-#error-message {
+#message {
   color: red;
-}
-
-#status-message {
-  font-weight: bold;
 }
