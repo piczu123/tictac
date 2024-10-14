@@ -1,14 +1,35 @@
 {
     "name": "tictactoe",
     "version": "1.0.0",
-    "description": "Tic Tac Toe multiplayer game",
+    "description": "Multiplayer Tic Tac Toe game",
     "main": "server/index.js",
     "scripts": {
-        "start": "node server/index.js"
+      "start": "node server/index.js",
+      "dev": "nodemon server/index.js"
     },
     "dependencies": {
-        "body-parser": "^1.20.0",
-        "express": "^4.18.0",
-        "express-session": "^1.18.1"
-    }
-}
+      "express": "^4.18.2",
+      "socket.io": "^4.6.1",
+      "bcryptjs": "^2.4.3",
+      "mongoose": "^7.6.0"  // if you are using MongoDB
+    },
+    "devDependencies": {
+      "nodemon": "^2.0.22"
+    },
+    "engines": {
+      "node": ">=20.0.0"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/yourusername/tictactoe.git"
+    },
+    "keywords": [
+      "TicTacToe",
+      "multiplayer",
+      "game",
+      "socket.io"
+    ],
+    "author": "Your Name",
+    "license": "MIT"
+  }
+  
