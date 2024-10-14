@@ -1,23 +1,11 @@
 const socket = io();
 const gameBoard = document.getElementById('gameBoard');
 const statusDiv = document.getElementById('status');
-const playerNamesDiv = document.getElementById('playerNames');
 
 let board = Array(15).fill(null).map(() => Array(15).fill(null));
-let currentPlayer;
-let playerSymbol;
-let opponentSymbol;
-
-// Initialize the game board
-createBoard();
-
-// Display player names
-socket.on('startGame', (data) => {
-    currentPlayer = data.currentPlayer;
-    playerSymbol = currentPlayer === 'X' ? 'X' : 'O';
-    opponentSymbol = currentPlayer === 'X' ? 'O' : 'X';
-    playerNamesDiv.textContent = `You: ${currentPlayer === 'X' ? 'X' : 'O'}, Opponent: ${data.opponent}`;
-});
+let currentPlayer = 'X'; // or 'O'
+let isMyTurn = true; // Track if it's the current player's turn
+let gameActive = true; // Track if the game is still active
 
 function createBoard() {
     for (let row = 0; row < 15; row++) {
@@ -31,20 +19,14 @@ function createBoard() {
 }
 
 function makeMove(row, col) {
-    if (board[row][col] || currentPlayer === null) return; // Check if cell is already occupied
-    board[row][col] = playerSymbol; // Set the player's symbol
+    if (!isMyTurn || board[row][col] || !gameActive) return; // Check turn, if cell is occupied, and if game is active
+    board[row][col] = currentPlayer;
     updateBoard();
 
     // Emit the move to the opponent
-    socket.emit('makeMove', { row, col, player: playerSymbol });
-
-    if (checkWin(row, col, playerSymbol)) {
-        statusDiv.textContent = `${playerSymbol} wins!`;
-        currentPlayer = null; // Stop further moves
-        return;
-    }
-    
-    currentPlayer = opponentSymbol; // Switch player
+    socket.emit('makeMove', { row, col, player: currentPlayer });
+    checkWinCondition(row, col); // Check for a win after the move
+    isMyTurn = false; // End turn for current player
 }
 
 function updateBoard() {
@@ -56,50 +38,48 @@ function updateBoard() {
     });
 }
 
+// Check win condition after each move
+function checkWinCondition(row, col) {
+    // Check all directions for five in a row
+    if (checkDirection(row, col, 1, 0) || // Horizontal
+        checkDirection(row, col, 0, 1) || // Vertical
+        checkDirection(row, col, 1, 1) || // Diagonal /
+        checkDirection(row, col, 1, -1)) { // Diagonal \
+        statusDiv.textContent = `${currentPlayer} wins!`;
+        gameActive = false; // End game
+    }
+}
+
+function checkDirection(row, col, rowDir, colDir) {
+    let count = 1;
+
+    // Check in the positive direction
+    for (let i = 1; i < 5; i++) {
+        const newRow = row + i * rowDir;
+        const newCol = col + i * colDir;
+        if (newRow < 0 || newRow >= 15 || newCol < 0 || newCol >= 15 || board[newRow][newCol] !== currentPlayer) break;
+        count++;
+    }
+
+    // Check in the negative direction
+    for (let i = 1; i < 5; i++) {
+        const newRow = row - i * rowDir;
+        const newCol = col - i * colDir;
+        if (newRow < 0 || newRow >= 15 || newCol < 0 || newCol >= 15 || board[newRow][newCol] !== currentPlayer) break;
+        count++;
+    }
+
+    return count >= 5; // Check if we have five in a row
+}
+
 socket.on('moveMade', (data) => {
     board[data.row][data.col] = data.player; // Update board with opponent's move
     updateBoard();
-
-    if (checkWin(data.row, data.col, data.player)) {
-        statusDiv.textContent = `${data.player} wins!`;
-        currentPlayer = null; // Stop further moves
-    } else {
-        currentPlayer = playerSymbol; // Switch back to the original player
-    }
+    isMyTurn = true; // Allow the current player to make a move again
 });
 
-// Check for winning condition
-function checkWin(row, col, player) {
-    // Horizontal, Vertical, and Diagonal checks
-    return (
-        checkDirection(row, col, player, 0, 1) || // Horizontal
-        checkDirection(row, col, player, 1, 0) || // Vertical
-        checkDirection(row, col, player, 1, 1) || // Diagonal /
-        checkDirection(row, col, player, 1, -1)   // Diagonal \
-    );
-}
-
-function checkDirection(row, col, player, rowDir, colDir) {
-    let count = 1;
-
-    // Check one direction
-    for (let i = 1; i < 5; i++) {
-        const r = row + i * rowDir;
-        const c = col + i * colDir;
-        if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== player) break;
-        count++;
-    }
-
-    // Check the opposite direction
-    for (let i = 1; i < 5; i++) {
-        const r = row - i * rowDir;
-        const c = col - i * colDir;
-        if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== player) break;
-        count++;
-    }
-
-    return count >= 5; // Check if there are 5 in a row
-}
+// Initialize the game board
+createBoard();
 
 // Leave game button functionality
 document.getElementById('leaveGameButton').addEventListener('click', () => {
