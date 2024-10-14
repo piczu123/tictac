@@ -1,36 +1,24 @@
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcryptjs');
-
-// Mock user storage
-const users = [];
+// Assuming you have a user model or a way to access your database
+const User = require('./models/User'); // Import your user model
 
 // Registration route
-router.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
     const { username, password } = req.body;
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    users.push({ username, password: hashedPassword });
-    res.json({ success: true });
-});
 
-// Login route
-router.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (user && bcrypt.compareSync(password, user.password)) {
-        req.session.username = username; // Store username in session
-        res.json({ success: true });
-    } else {
-        res.json({ success: false, message: 'Invalid credentials' });
+    try {
+        // Check if the username already exists
+        const existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.json({ success: false, message: 'Username already taken. Please choose another one.' });
+        }
+
+        // Create a new user
+        const newUser = new User({ username, password }); // Hash password if you are using bcrypt
+        await newUser.save();
+
+        return res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        return res.json({ success: false, message: 'An error occurred during registration.' });
     }
 });
-
-// Logout route
-router.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-// Other routes can be added as needed
-
-module.exports = router;

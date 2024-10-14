@@ -26,55 +26,14 @@ function makeMove(row, col) {
 
     // Emit the move to the opponent
     socket.emit('makeMove', { row, col, player: currentPlayer });
-    if (checkWinCondition(row, col)) { // Check for a win after the move
-        alert(`${currentPlayer} wins!`);
-        gameActive = false; // End the game
-        return;
-    }
+    checkWinCondition(row, col); // Check for a win after the move
     isMyTurn = false; // End turn for current player
 }
 
 // Check for win condition after a move
 function checkWinCondition(row, col) {
-    const directions = [
-        { x: 0, y: 1 },   // Horizontal
-        { x: 1, y: 0 },   // Vertical
-        { x: 1, y: 1 },   // Diagonal \
-        { x: 1, y: -1 }   // Diagonal /
-    ];
-
-    for (let { x, y } of directions) {
-        let count = 1; // Count includes the current move
-
-        // Check in the positive direction
-        for (let i = 1; i < 5; i++) {
-            const newRow = row + i * x;
-            const newCol = col + i * y;
-            if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && board[newRow][newCol] === currentPlayer) {
-                count++;
-            } else {
-                break; // Stop if no match
-            }
-        }
-
-        // Check in the negative direction
-        for (let i = 1; i < 5; i++) {
-            const newRow = row - i * x;
-            const newCol = col - i * y;
-            if (newRow >= 0 && newRow < 15 && newCol >= 0 && newCol < 15 && board[newRow][newCol] === currentPlayer) {
-                count++;
-            } else {
-                break; // Stop if no match
-            }
-        }
-
-        // Check if there are 5 in a row
-        if (count >= 5) {
-            return true; // Win found
-        }
-    }
-
-    return false; // No win
+    // Check horizontal, vertical, and diagonal lines for a win
+    // Implement win-checking logic here and set gameActive to false if someone wins
 }
 
 function updateBoard() {
@@ -90,11 +49,6 @@ function updateBoard() {
 socket.on('moveMade', (data) => {
     board[data.row][data.col] = opponentPlayer; // Use the opponent's symbol
     updateBoard();
-    if (checkWinCondition(data.row, data.col)) { // Check for a win after the opponent's move
-        alert(`${opponentPlayer} wins!`);
-        gameActive = false; // End the game
-        return;
-    }
     isMyTurn = true; // Allow the current player to make a move again
 });
 
