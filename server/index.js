@@ -14,7 +14,7 @@ const io = socketIo(server);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(session({
-    secret: 'yourSecretKey', // Change this to a secure random string
+    secret: 'yourSecretKey',
     resave: false,
     saveUninitialized: true
 }));
@@ -32,33 +32,27 @@ io.on('connection', (socket) => {
     console.log('A user connected');
 
     socket.on('joinQueue', (username) => {
-        // Add player to the queue
         queue.push({ socket, username });
         console.log(`${username} joined the queue`);
 
-        // Check if we have enough players for a match
         if (queue.length >= 2) {
-            const player1 = queue.shift(); // First player
-            const player2 = queue.shift(); // Second player
+            const player1 = queue.shift();
+            const player2 = queue.shift();
 
-            // Emit event to both players that a match has been found
             player1.socket.emit('matchFound', { opponent: player2.username });
             player2.socket.emit('matchFound', { opponent: player1.username });
-
-            // You can also emit the room info or game state here if needed
         }
     });
 
     socket.on('leaveQueue', (username) => {
         const index = queue.findIndex(player => player.socket === socket);
         if (index !== -1) {
-            queue.splice(index, 1); // Remove player from queue
+            queue.splice(index, 1);
             console.log(`${username} left the queue`);
         }
     });
 
     socket.on('makeMove', (data) => {
-        // Broadcast move to the opponent
         socket.broadcast.emit('moveMade', data);
     });
 
@@ -66,7 +60,7 @@ io.on('connection', (socket) => {
         console.log('User disconnected');
         const index = queue.findIndex(player => player.socket === socket);
         if (index !== -1) {
-            queue.splice(index, 1); // Remove player from queue on disconnect
+            queue.splice(index, 1);
         }
     });
 });

@@ -1,39 +1,50 @@
 const socket = io();
+const gameBoard = document.getElementById('gameBoard');
+const statusDiv = document.getElementById('status');
 
-const board = Array(15).fill(null).map(() => Array(15).fill(null));
+let board = Array(15).fill(null).map(() => Array(15).fill(null));
+let currentPlayer = 'X'; // or 'O'
 
 function createBoard() {
-    const gameBoard = document.getElementById('game-board');
-    gameBoard.innerHTML = '';
-    for (let i = 0; i < 15; i++) {
-        for (let j = 0; j < 15; j++) {
+    for (let row = 0; row < 15; row++) {
+        for (let col = 0; col < 15; col++) {
             const cell = document.createElement('div');
-            cell.addEventListener('click', () => handleCellClick(i, j));
+            cell.className = 'cell';
+            cell.addEventListener('click', () => makeMove(row, col));
             gameBoard.appendChild(cell);
         }
     }
 }
 
-function handleCellClick(i, j) {
-    if (!board[i][j]) {
-        board[i][j] = 'X'; // Replace with actual player's symbol
-        socket.emit('makeMove', { x: i, y: j });
-        renderBoard();
-    }
+function makeMove(row, col) {
+    if (board[row][col] || !currentPlayer) return; // Check if cell is already occupied
+    board[row][col] = currentPlayer;
+    updateBoard();
+    
+    // Emit the move to the opponent
+    socket.emit('makeMove', { row, col, player: currentPlayer });
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Switch player
 }
 
-function renderBoard() {
-    const gameBoard = document.getElementById('game-board').children;
-    for (let i = 0; i < 15; i++) {
-        for (let j = 0; j < 15; j++) {
-            gameBoard[i * 15 + j].innerText = board[i][j] || '';
-        }
-    }
+function updateBoard() {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        const row = Math.floor(index / 15);
+        const col = index % 15;
+        cell.textContent = board[row][col] || '';
+    });
 }
 
 socket.on('moveMade', (data) => {
-    board[data.x][data.y] = 'O'; // Replace with the opponent's symbol
-    renderBoard();
+    board[data.row][data.col] = data.player; // Update board with opponent's move
+    updateBoard();
 });
 
+// Initialize the game board
 createBoard();
+
+// Leave game button functionality
+document.getElementById('leaveGameButton').addEventListener('click', () => {
+    // Handle leaving the game (e.g., redirect to queue or home)
+    window.location.href = '/queue.html';
+});

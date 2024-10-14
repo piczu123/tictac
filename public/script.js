@@ -1,46 +1,42 @@
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(this);
-    fetch('/login', {
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+
+    const response = await fetch('/login', {
         method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = '/queue.html'; // Redirect to queue page
-        } else {
-            document.getElementById('message').innerText = data.message;
-        }
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
     });
+    const data = await response.json();
+
+    if (data.success) {
+        sessionStorage.setItem('username', username);
+        window.location.href = '/queue.html';
+    } else {
+        alert(data.message);
+    }
 });
 
-document.getElementById('registerForm').addEventListener('submit', function(e) {
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(this);
-    fetch('/register', {
+    const username = document.getElementById('registerUsername').value;
+    const password = document.getElementById('registerPassword').value;
+
+    const response = await fetch('/register', {
         method: 'POST',
-        body: formData,
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('message').innerText = "Registration successful! Please log in.";
-            document.getElementById('registerForm').style.display = "none";
-            document.getElementById('loginForm').style.display = "block";
-        } else {
-            document.getElementById('message').innerText = data.message;
-        }
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
     });
+    const data = await response.json();
+
+    if (data.success) {
+        alert('Registration successful! Please log in.');
+    } else {
+        alert(data.message);
+    }
 });
-
-// Switch between forms
-document.getElementById('switchToRegister').onclick = function() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-};
-
-document.getElementById('switchToLogin').onclick = function() {
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('loginForm').style.display = 'block';
-};

@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Game</title>
     <link rel="stylesheet" href="style.css">
-    <title>Tic Tac Toe - Game</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js" defer></script>
 </head>
 <body>
-    <div class="container">
-        <h1>Tic Tac Toe</h1>
-        <div id="board"></div>
-        <div id="gameInfo"></div>
-        <button id="leaveGame">Leave Game</button>
-    </div>
-    <script src="game.js"></script>
+    <h1>Tic Tac Toe Game</h1>
+    <div id="gameBoard"></div>
+    <div id="status"></div>
+    <button id="leaveGameButton">Leave Game</button>
 </body>
 </html>
