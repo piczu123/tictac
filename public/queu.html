@@ -3,16 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Queue</title>
+    <title>Tic Tac Toe - Queue</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to the Queue, <span id="username"></span></h1>
-        <div id="gameQueue">Waiting for an opponent...</div>
-        <button id="leaveQueue">Leave Queue</button>
+        <h1>Queue for Tic Tac Toe</h1>
+        <div id="queueList">
+            <!-- Queue list will be populated here -->
+        </div>
+        <button id="logoutButton">Logout</button>
     </div>
 
-    <script src="queue.js"></script>
+    <script>
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            // Handle logout functionality (if required)
+            // For now, just redirect to the login page
+            window.location.href = '/index.html';
+        });
+    </script>
 </body>
 </html>
