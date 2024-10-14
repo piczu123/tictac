@@ -4,7 +4,8 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const http = require('http');
 const socketIo = require('socket.io');
-const routes = require('./routes'); // Now your single routes file
+const userRoutes = require('./userRoutes'); // Import user routes
+const routes = require('./routes'); // Import general routes
 
 const app = express();
 const server = http.createServer(app);
@@ -23,7 +24,8 @@ app.use(session({
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes
-app.use('/', routes); // Use the combined routes
+app.use('/api/users', userRoutes); // Use user-related routes
+app.use('/', routes); // Use the general routes
 
 const queue = []; // Store players in the queue
 
