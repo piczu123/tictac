@@ -1,70 +1,36 @@
 const express = require('express');
 const router = express.Router();
-const User = require('./userModel'); // Adjust the path as necessary
-const UserModel = require('./userModel');
-// User registration route
-router.post('/register', async (req, res) => {
+const bcrypt = require('bcryptjs');
+
+// Mock user storage
+const users = [];
+
+// Registration route
+router.post('/register', (req, res) => {
     const { username, password } = req.body;
-
-    try {
-        // Check if the user already exists
-        const existingUser = await User.findOne({ username });
-        if (existingUser) {
-            return res.status(400).send('User already exists');
-        }
-
-        // Create a new user (ensure to hash the password)
-        const newUser = new User({
-            username,
-            password // Hash the password before saving
-        });
-
-        await newUser.save();
-        return res.status(201).send('User registered successfully');
-    } catch (error) {
-        console.error('Error registering user:', error);
-        return res.status(500).send('Server error');
-    }
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    users.push({ username, password: hashedPassword });
+    res.json({ success: true });
 });
 
-// User login route
-router.post('/login', async (req, res) => {
+// Login route
+router.post('/login', (req, res) => {
     const { username, password } = req.body;
-
-    try {
-        // Find the user
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(404).send('User not found');
-        }
-
-        // Check password (ensure you hash passwords when saving and compare hashes here)
-        if (user.password !== password) { // Use bcrypt to compare hashed passwords
-            return res.status(401).send('Invalid password');
-        }
-
-        // Create a session for the user
-        req.session.username = user.username; // Example of session usage
-        return res.send('User logged in successfully');
-    } catch (error) {
-        console.error('Error logging in user:', error);
-        return res.status(500).send('Server error');
+    const user = users.find(u => u.username === username);
+    if (user && bcrypt.compareSync(password, user.password)) {
+        req.session.username = username; // Store username in session
+        res.json({ success: true });
+    } else {
+        res.json({ success: false, message: 'Invalid credentials' });
     }
 });
 
-// Example route for the main page or dashboard
-router.get('/dashboard', (req, res) => {
-    if (!req.session.username) {
-        return res.status(401).send('Please log in first');
-    }
-    res.send(`Welcome to your dashboard, ${req.session.username}!`);
+// Logout route
+router.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
 });
 
-// Other application routes can be added here
-router.get('/some-other-route', (req, res) => {
-    res.send('This is another route');
-});
-
-// You can add more routes as needed...
+// Other routes can be added as needed
 
 module.exports = router;
