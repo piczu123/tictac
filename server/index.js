@@ -1,21 +1,47 @@
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
-const { setupDatabase } = require('./setupDatabase');
-const { login, register } = require('./routes');
+const session = require('express-session');
+const http = require('http');
+const socketIo = require('socket.io');
+const routes = require('./routes');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = socketIo(server);
 
+// Middleware setup
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(session({
+    secret: 'yourSecretKey', // Change this to a secure random string
+    resave: false,
+    saveUninitialized: true
+}));
+
+// Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
-setupDatabase();
+// Set view engine if using EJS templates (if necessary)
+// app.set('view engine', 'ejs');
+// app.set('views', path.join(__dirname, 'views'));
 
-app.post('/login', login);
-app.post('/register', register);
+// Routes
+app.use('/', routes);
 
-app.get('/queue.html', (req, res) => res.sendFile(path.join(__dirname, '../public/queue.html')));
-app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, '../public/game.html')));
+// Socket.io setup
+io.on('connection', (socket) => {
+    console.log('A user connected');
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    // Add your socket event listeners here
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
+});
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
