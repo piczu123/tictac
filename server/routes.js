@@ -1,27 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-
-// Mock user storage
-const users = [];
+const User = require('../userModel'); // Import the User model
 
 // Registration route
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
     const { username, password } = req.body;
     const hashedPassword = bcrypt.hashSync(password, 10);
-    users.push({ username, password: hashedPassword });
-    res.json({ success: true });
+    
+    try {
+        const newUser = new User({ username, password: hashedPassword });
+        await newUser.save();
+        res.json({ success: true });
+    } catch (err) {
+        if (err.code === 11000) {
+            res.json({ success: false, message: 'Username already exists.' });
+        } else {
+            res.json({ success: false, message: 'An error occurred during registration.' });
+        }
+    }
 });
 
 // Login route
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (user && bcrypt.compareSync(password, user.password)) {
-        req.session.username = username; // Store username in session
-        res.json({ success: true });
-    } else {
-        res.json({ success: false, message: 'Invalid credentials' });
+
+    try {
+        const user = await User.findOne({ username });
+        if (user && bcrypt.compareSync(password, user.password)) {
+            req.session.username = username; // Store username in session
+            res.json({ success: true });
+        } else {
+            res.json({ success: false, message: 'Invalid credentials' });
+        }
+    } catch (err) {
+        res.json({ success: false, message: 'An error occurred during login.' });
     }
 });
 

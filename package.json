@@ -4,19 +4,18 @@
     "description": "A multiplayer Tic Tac Toe game",
     "main": "server/index.js",
     "scripts": {
-      "start": "node server/index.js",
-      "heroku-postbuild": "npm install --production"
+        "start": "node server/index.js",
+        "heroku-postbuild": "npm install --production"
     },
     "dependencies": {
-      "bcryptjs": "^2.4.3",
-      "express": "^4.18.2",
-      "express-session": "^1.17.3",
-      "socket.io": "^4.6.0"
-      
+        "bcryptjs": "^2.4.3",
+        "express": "^4.18.2",
+        "express-session": "^1.17.3",
+        "mongoose": "^8.7.1",
+        "socket.io": "^4.6.0"
     },
     "engines": {
-      "node": ">=20.0.0"
+        "node": ">=20.0.0"
     },
     "license": "MIT"
-  }
-  
+}
