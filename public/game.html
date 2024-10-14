@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Board</title>
     <link rel="stylesheet" href="style.css">
+    <title>Game</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Tic Tac Toe</h1>
-        <div id="gameBoard"></div>
-        <div id="status"></div>
-        <button id="restartGame">Restart Game</button>
+    <h1>Tic Tac Toe</h1>
+    <div id="gameBoard">
+        <!-- Your game grid goes here -->
     </div>
-
-    <script src="game.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        // Initialize game logic here
+    </script>
 </body>
 </html>

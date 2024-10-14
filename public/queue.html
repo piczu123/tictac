@@ -3,23 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe - Queue</title>
     <link rel="stylesheet" href="style.css">
+    <title>Queue</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Queue for Tic Tac Toe</h1>
-        <div id="queueList">
-            <!-- Queue list will be populated here -->
-        </div>
-        <button id="logoutButton">Logout</button>
-    </div>
-
+    <h1>Queue for Game</h1>
+    <div id="status"></div>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        document.getElementById('logoutButton').addEventListener('click', function() {
-            // Handle logout functionality (if required)
-            // For now, just redirect to the login page
-            window.location.href = '/index.html';
+        const socket = io();
+        const username = sessionStorage.getItem('username'); // Retrieve username from session storage
+
+        socket.emit('joinQueue', username);
+
+        socket.on('matchFound', (opponent) => {
+            document.getElementById('status').innerHTML = `Matched with ${opponent}. Redirecting to game...`;
+            setTimeout(() => {
+                window.location.href = 'game.html'; // Redirect to game page
+            }, 2000);
         });
     </script>
 </body>
