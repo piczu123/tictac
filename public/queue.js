@@ -8,7 +8,8 @@ socket.emit('joinQueue', username);
 
 // Listen for matchFound event
 socket.on('matchFound', (data) => {
-    alert(`Match found with ${data.opponent}`);
+    alert(`Match found with ${data.opponent}. You are playing as ${data.symbol}`);
+    sessionStorage.setItem('symbol', data.symbol); // Store player's symbol
     // Redirect to the game page
     window.location.href = '/game.html'; 
 });

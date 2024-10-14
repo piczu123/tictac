@@ -39,8 +39,9 @@ io.on('connection', (socket) => {
             const player1 = queue.shift();
             const player2 = queue.shift();
 
-            player1.socket.emit('matchFound', { opponent: player2.username });
-            player2.socket.emit('matchFound', { opponent: player1.username });
+            // Assign symbols
+            player1.socket.emit('matchFound', { opponent: player2.username, symbol: 'X' });
+            player2.socket.emit('matchFound', { opponent: player1.username, symbol: 'O' });
         }
     });
 

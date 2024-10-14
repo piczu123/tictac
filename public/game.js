@@ -3,8 +3,9 @@ const gameBoard = document.getElementById('gameBoard');
 const statusDiv = document.getElementById('status');
 
 let board = Array(15).fill(null).map(() => Array(15).fill(null));
-let currentPlayer = 'X'; // or 'O'
-let isMyTurn = true; // Track if it's the current player's turn
+let currentPlayer = sessionStorage.getItem('symbol'); // Get assigned symbol
+let opponentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Set opponent's symbol
+let isMyTurn = true; // Track whose turn it is
 let gameActive = true; // Track if the game is still active
 
 function createBoard() {
@@ -20,13 +21,19 @@ function createBoard() {
 
 function makeMove(row, col) {
     if (!isMyTurn || board[row][col] || !gameActive) return; // Check turn, if cell is occupied, and if game is active
-    board[row][col] = currentPlayer;
+    board[row][col] = currentPlayer; // Use the assigned symbol
     updateBoard();
 
     // Emit the move to the opponent
     socket.emit('makeMove', { row, col, player: currentPlayer });
     checkWinCondition(row, col); // Check for a win after the move
     isMyTurn = false; // End turn for current player
+}
+
+// Check for win condition after a move
+function checkWinCondition(row, col) {
+    // Check horizontal, vertical, and diagonal lines for a win
+    // Implement win-checking logic here and set gameActive to false if someone wins
 }
 
 function updateBoard() {
@@ -38,42 +45,9 @@ function updateBoard() {
     });
 }
 
-// Check win condition after each move
-function checkWinCondition(row, col) {
-    // Check all directions for five in a row
-    if (checkDirection(row, col, 1, 0) || // Horizontal
-        checkDirection(row, col, 0, 1) || // Vertical
-        checkDirection(row, col, 1, 1) || // Diagonal /
-        checkDirection(row, col, 1, -1)) { // Diagonal \
-        statusDiv.textContent = `${currentPlayer} wins!`;
-        gameActive = false; // End game
-    }
-}
-
-function checkDirection(row, col, rowDir, colDir) {
-    let count = 1;
-
-    // Check in the positive direction
-    for (let i = 1; i < 5; i++) {
-        const newRow = row + i * rowDir;
-        const newCol = col + i * colDir;
-        if (newRow < 0 || newRow >= 15 || newCol < 0 || newCol >= 15 || board[newRow][newCol] !== currentPlayer) break;
-        count++;
-    }
-
-    // Check in the negative direction
-    for (let i = 1; i < 5; i++) {
-        const newRow = row - i * rowDir;
-        const newCol = col - i * colDir;
-        if (newRow < 0 || newRow >= 15 || newCol < 0 || newCol >= 15 || board[newRow][newCol] !== currentPlayer) break;
-        count++;
-    }
-
-    return count >= 5; // Check if we have five in a row
-}
-
+// When updating the board with opponent's move
 socket.on('moveMade', (data) => {
-    board[data.row][data.col] = data.player; // Update board with opponent's move
+    board[data.row][data.col] = opponentPlayer; // Use the opponent's symbol
     updateBoard();
     isMyTurn = true; // Allow the current player to make a move again
 });
