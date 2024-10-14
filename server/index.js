@@ -29,7 +29,7 @@ app.use('/', routes);
 io.on('connection', (socket) => {
     console.log('A user connected');
 
-    // Add your socket event listeners here
+    // Handle game logic here...
 
     socket.on('disconnect', () => {
         console.log('User disconnected');
@@ -40,4 +40,16 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+});
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    // Handle making a move
+    socket.on('makeMove', (data) => {
+        socket.broadcast.emit('moveMade', data); // Broadcast move to other player
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+    });
 });

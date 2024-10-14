@@ -1,37 +1,33 @@
-function login() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const formData = new FormData(this);
     fetch('/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: formData,
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.location.href = '/queue.html';
+            window.location.href = '/queue';
         } else {
-            document.getElementById('authMessage').textContent = data.message;
+            alert(data.message);
         }
     });
-}
+});
 
-function register() {
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    
+document.getElementById('registerForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const formData = new FormData(this);
     fetch('/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: formData,
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.location.href = '/queue.html';
+            alert('Registration successful, please login.');
         } else {
-            document.getElementById('authMessage').textContent = data.message;
+            alert(data.message);
         }
     });
-}
+});
