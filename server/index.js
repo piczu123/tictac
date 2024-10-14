@@ -22,40 +22,41 @@ app.use(session({
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Set view engine if using EJS templates (if necessary)
-// app.set('view engine', 'ejs');
-// app.set('views', path.join(__dirname, 'views'));
-
 // Routes
 app.use('/', routes);
 
 // Socket.io setup
+let waitingPlayers = [];
+
+// Handle player connections
 io.on('connection', (socket) => {
     console.log('A user connected');
 
-    // Join the queue
-    socket.on('joinQueue', (username) => {
+    socket.on('joinQueue', () => {
         socket.join('queue');
-        socket.username = username;
-        console.log(`${username} joined the queue`);
+        console.log('User joined the queue');
+        waitingPlayers.push(socket.id);
 
-        // Check if another player is already in the queue
-        const clients = Array.from(io.sockets.adapter.rooms.get('queue') || []);
-        if (clients.length === 2) {
-            const player1 = clients[0];
-            const player2 = clients[1];
-            io.to(player1).emit('startGame', socket.username);
-            io.to(player2).emit('startGame', socket.username);
+        // Try to find a match
+        if (waitingPlayers.length >= 2) {
+            const player1 = waitingPlayers.shift();
+            const player2 = waitingPlayers.shift();
+            const currentPlayer = Math.random() > 0.5 ? 'X' : 'O';
+
+            io.to(player1).emit('startGame', { currentPlayer: currentPlayer, opponent: player2 });
+            io.to(player2).emit('startGame', { currentPlayer: currentPlayer === 'X' ? 'O' : 'X', opponent: player1 });
+            console.log('Match found');
         }
     });
 
-    // Handle board updates
-    socket.on('updateBoard', ({ row, col, symbol }) => {
-        socket.to('queue').emit('boardUpdated', { row, col, symbol });
+    socket.on('makeMove', (data) => {
+        // Broadcast the move to the opponent
+        socket.to('game').emit('moveMade', data);
     });
 
     socket.on('disconnect', () => {
         console.log('User disconnected');
+        waitingPlayers = waitingPlayers.filter(player => player !== socket.id);
     });
 });
 

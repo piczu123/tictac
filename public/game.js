@@ -1,116 +1,108 @@
 const socket = io();
+const gameBoard = document.getElementById('gameBoard');
+const statusDiv = document.getElementById('status');
+const playerNamesDiv = document.getElementById('playerNames');
 
-// Get the board element
-const board = document.getElementById('board');
-const playerNames = document.getElementById('playerNames');
-const resetButton = document.getElementById('resetButton');
+let board = Array(15).fill(null).map(() => Array(15).fill(null));
+let currentPlayer;
+let playerSymbol;
+let opponentSymbol;
 
-let currentPlayer = '';
-let currentSymbol = '';
-let boardState = Array(15).fill(null).map(() => Array(15).fill(null));
-let gameActive = true;
-let playerOne, playerTwo;
+// Initialize the game board
+createBoard();
 
-// Create the board dynamically
-for (let row = 0; row < 15; row++) {
-    const rowDiv = document.createElement('div');
-    rowDiv.classList.add('row');
-    for (let col = 0; col < 15; col++) {
-        const cell = document.createElement('div');
-        cell.classList.add('cell');
-        cell.dataset.row = row;
-        cell.dataset.col = col;
-        cell.addEventListener('click', handleCellClick);
-        rowDiv.appendChild(cell);
-    }
-    board.appendChild(rowDiv);
-}
-
-// Listen for the startGame event
-socket.on('startGame', (otherPlayer) => {
-    const username = document.querySelector('input[name="username"]').value;
-    playerOne = username;
-    playerTwo = otherPlayer;
-    currentPlayer = Math.random() < 0.5 ? playerOne : playerTwo;
-    currentSymbol = currentPlayer === playerOne ? 'X' : 'O';
-    playerNames.innerHTML = `${playerOne} (X) vs ${playerTwo} (O)`;
-    alert(`You are ${currentSymbol}. It's your turn.`);
+// Display player names
+socket.on('startGame', (data) => {
+    currentPlayer = data.currentPlayer;
+    playerSymbol = currentPlayer === 'X' ? 'X' : 'O';
+    opponentSymbol = currentPlayer === 'X' ? 'O' : 'X';
+    playerNamesDiv.textContent = `You: ${currentPlayer === 'X' ? 'X' : 'O'}, Opponent: ${data.opponent}`;
 });
 
-// Handle cell click
-function handleCellClick(event) {
-    const row = event.target.dataset.row;
-    const col = event.target.dataset.col;
-
-    if (boardState[row][col] || !gameActive) {
-        return; // Ignore if the cell is already filled or game is not active
+function createBoard() {
+    for (let row = 0; row < 15; row++) {
+        for (let col = 0; col < 15; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.addEventListener('click', () => makeMove(row, col));
+            gameBoard.appendChild(cell);
+        }
     }
+}
 
-    boardState[row][col] = currentSymbol;
-    event.target.textContent = currentSymbol;
+function makeMove(row, col) {
+    if (board[row][col] || currentPlayer === null) return; // Check if cell is already occupied
+    board[row][col] = playerSymbol; // Set the player's symbol
+    updateBoard();
 
-    if (checkWin(row, col)) {
-        alert(`${currentPlayer} wins!`);
-        gameActive = false;
+    // Emit the move to the opponent
+    socket.emit('makeMove', { row, col, player: playerSymbol });
+
+    if (checkWin(row, col, playerSymbol)) {
+        statusDiv.textContent = `${playerSymbol} wins!`;
+        currentPlayer = null; // Stop further moves
+        return;
+    }
+    
+    currentPlayer = opponentSymbol; // Switch player
+}
+
+function updateBoard() {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        const row = Math.floor(index / 15);
+        const col = index % 15;
+        cell.textContent = board[row][col] || '';
+    });
+}
+
+socket.on('moveMade', (data) => {
+    board[data.row][data.col] = data.player; // Update board with opponent's move
+    updateBoard();
+
+    if (checkWin(data.row, data.col, data.player)) {
+        statusDiv.textContent = `${data.player} wins!`;
+        currentPlayer = null; // Stop further moves
     } else {
-        currentPlayer = currentPlayer === playerOne ? playerTwo : playerOne;
-        currentSymbol = currentPlayer === playerOne ? 'X' : 'O';
-        alert(`It's now ${currentPlayer}'s turn.`);
+        currentPlayer = playerSymbol; // Switch back to the original player
     }
+});
 
-    // Emit the updated board state
-    socket.emit('updateBoard', { row, col, symbol: currentSymbol });
+// Check for winning condition
+function checkWin(row, col, player) {
+    // Horizontal, Vertical, and Diagonal checks
+    return (
+        checkDirection(row, col, player, 0, 1) || // Horizontal
+        checkDirection(row, col, player, 1, 0) || // Vertical
+        checkDirection(row, col, player, 1, 1) || // Diagonal /
+        checkDirection(row, col, player, 1, -1)   // Diagonal \
+    );
 }
 
-// Check for a win condition
-function checkWin(row, col) {
-    const symbol = boardState[row][col];
-    return checkDirection(row, col, symbol, 1, 0) || // Horizontal
-           checkDirection(row, col, symbol, 0, 1) || // Vertical
-           checkDirection(row, col, symbol, 1, 1) || // Diagonal /
-           checkDirection(row, col, symbol, 1, -1);   // Diagonal \
-}
-
-// Check a specific direction for a win
-function checkDirection(row, col, symbol, rowIncrement, colIncrement) {
+function checkDirection(row, col, player, rowDir, colDir) {
     let count = 1;
 
+    // Check one direction
     for (let i = 1; i < 5; i++) {
-        const r = row + rowIncrement * i;
-        const c = col + colIncrement * i;
-        if (r < 0 || r >= 15 || c < 0 || c >= 15 || boardState[r][c] !== symbol) {
-            break;
-        }
+        const r = row + i * rowDir;
+        const c = col + i * colDir;
+        if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== player) break;
         count++;
     }
 
+    // Check the opposite direction
     for (let i = 1; i < 5; i++) {
-        const r = row - rowIncrement * i;
-        const c = col - colIncrement * i;
-        if (r < 0 || r >= 15 || c < 0 || c >= 15 || boardState[r][c] !== symbol) {
-            break;
-        }
+        const r = row - i * rowDir;
+        const c = col - i * colDir;
+        if (r < 0 || r >= 15 || c < 0 || c >= 15 || board[r][c] !== player) break;
         count++;
     }
 
-    return count >= 5; // 5 in a row
+    return count >= 5; // Check if there are 5 in a row
 }
 
-// Listen for board updates from the server
-socket.on('boardUpdated', ({ row, col, symbol }) => {
-    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-    cell.textContent = symbol;
-});
-
-// Reset game functionality
-resetButton.addEventListener('click', () => {
-    boardState = Array(15).fill(null).map(() => Array(15).fill(null));
-    gameActive = true;
-    currentPlayer = Math.random() < 0.5 ? playerOne : playerTwo;
-    currentSymbol = currentPlayer === playerOne ? 'X' : 'O';
-    playerNames.innerHTML = `${playerOne} (X) vs ${playerTwo} (O)`;
-    Array.from(document.querySelectorAll('.cell')).forEach(cell => {
-        cell.textContent = '';
-    });
-    alert(`New game started! You are ${currentSymbol}.`);
+// Leave game button functionality
+document.getElementById('leaveGameButton').addEventListener('click', () => {
+    // Handle leaving the game (e.g., redirect to queue or home)
+    window.location.href = '/queue.html';
 });

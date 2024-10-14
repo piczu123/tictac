@@ -17,5 +17,3 @@ socket.on('matchFound', (data) => {
 function leaveQueue() {
     socket.emit('leaveQueue', username);
 }
-
-// Call leaveQueue() when a user navigates away or clicks a button
