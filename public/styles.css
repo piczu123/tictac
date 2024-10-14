@@ -1,26 +1,22 @@
 body {
   font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
   text-align: center;
+  padding: 20px;
 }
 
-form {
-  margin: 20px;
+.auth-container, .queue-container, .game-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
-input {
+input, button {
+  display: block;
+  width: calc(100% - 20px);
+  margin: 10px 0;
   padding: 10px;
-  margin: 10px;
-  width: 200px;
-}
-
-button {
-  padding: 10px 20px;
-}
-
-h1 {
-  color: #333;
-}
-
-#queue {
-  margin-top: 20px;
 }

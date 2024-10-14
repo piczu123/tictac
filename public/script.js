@@ -1,43 +1,37 @@
-document.getElementById('loginBtn').addEventListener('click', () => {
+function login() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
-
-    // Send login request
+    
     fetch('/login', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.location.href = 'queue.html'; // Redirect to queue page
+            window.location.href = '/queue.html';
         } else {
-            document.getElementById('message').innerText = data.message;
+            document.getElementById('authMessage').textContent = data.message;
         }
     });
-});
+}
 
-document.getElementById('registerBtn').addEventListener('click', () => {
+function register() {
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
-
-    // Send registration request
+    
     fetch('/register', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            window.location.href = 'queue.html'; // Redirect to queue page
+            window.location.href = '/queue.html';
         } else {
-            document.getElementById('message').innerText = data.message;
+            document.getElementById('authMessage').textContent = data.message;
         }
     });
-});
+}
