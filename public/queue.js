@@ -1,10 +1,18 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const username = document.getElementById('username');
-    username.textContent = sessionStorage.getItem('username') || 'Guest';
+const socket = io();
 
-    document.getElementById('leaveQueue').addEventListener('click', () => {
-        // Logic to leave the queue
-        alert('Leaving the queue...');
-        // Implement actual logic to disconnect from socket and redirect
-    });
+// Display player info
+socket.on('playerInfo', (playerName) => {
+    document.getElementById('playerInfo').innerText = `You are playing as: ${playerName}`;
 });
+
+// Wait for an opponent
+socket.on('opponentFound', () => {
+    document.getElementById('board').style.display = 'block';
+    document.getElementById('gameInfo').innerText = "Opponent found! Your turn.";
+});
+
+// Leave queue button
+document.getElementById('leaveQueue').onclick = function() {
+    socket.emit('leaveQueue');
+    window.location.href = '/index.html'; // Redirect back to login/register
+};

@@ -1,40 +1,43 @@
-const boardSize = 15;
-const board = document.getElementById('board');
-const statusDisplay = document.getElementById('status');
-let currentPlayer = 'X'; 
-let gameBoard = Array.from({ length: boardSize }, () => Array(boardSize).fill(''));
+const socket = io();
+let board = Array(15).fill(null).map(() => Array(15).fill(null));
+let currentPlayer = 'X'; // Or 'O'
 
 function createBoard() {
-    for (let i = 0; i < boardSize; i++) {
-        const row = document.createElement('div');
-        row.classList.add('row');
-        for (let j = 0; j < boardSize; j++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.dataset.row = i;
-            cell.dataset.col = j;
-            cell.addEventListener('click', handleCellClick);
-            row.appendChild(cell);
-        }
-        board.appendChild(row);
+    const boardElement = document.getElementById('board');
+    boardElement.innerHTML = '';
+    board.forEach((row, rowIndex) => {
+        const rowElement = document.createElement('div');
+        rowElement.className = 'row';
+        row.forEach((cell, colIndex) => {
+            const cellElement = document.createElement('div');
+            cellElement.className = 'cell';
+            cellElement.onclick = () => makeMove(rowIndex, colIndex);
+            rowElement.appendChild(cellElement);
+        });
+        boardElement.appendChild(rowElement);
+    });
+}
+
+function makeMove(rowIndex, colIndex) {
+    if (board[rowIndex][colIndex] === null) {
+        board[rowIndex][colIndex] = currentPlayer;
+        socket.emit('makeMove', { rowIndex, colIndex, player: currentPlayer });
+        createBoard();
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X'; // Toggle player
     }
 }
 
-function handleCellClick(event) {
-    const row = event.target.dataset.row;
-    const col = event.target.dataset.col;
+// Listen for moves from the opponent
+socket.on('opponentMove', (data) => {
+    board[data.rowIndex][data.colIndex] = data.player;
+    createBoard();
+});
 
-    if (gameBoard[row][col] === '') {
-        gameBoard[row][col] = currentPlayer;
-        event.target.textContent = currentPlayer;
-        checkWin();
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-    }
-}
-
-function checkWin() {
-    // Implement win checking logic here
-    statusDisplay.textContent = `${currentPlayer} wins!`; // Placeholder message
-}
-
+// Initialize board
 createBoard();
+
+// Leave game button
+document.getElementById('leaveGame').onclick = function() {
+    socket.emit('leaveGame');
+    window.location.href = '/queue.html'; // Redirect back to queue
+};

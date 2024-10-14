@@ -1,47 +1,54 @@
 body {
   font-family: Arial, sans-serif;
-}
-
-#form-container {
-  max-width: 400px;
-  margin: auto;
-  text-align: center;
-}
-
-#queue-container, #game-container {
-  max-width: 600px;
-  margin: auto;
-  text-align: center;
-}
-
-#board {
-  display: grid;
-  grid-template-columns: repeat(15, 40px);
-  grid-template-rows: repeat(15, 40px);
-  gap: 1px;
-  margin: 20px auto;
-}
-
-.cell {
-  width: 40px;
-  height: 40px;
+  background-color: #f4f4f4;
   display: flex;
-  align-items: center;
   justify-content: center;
-  border: 1px solid #ccc;
-  cursor: pointer;
-  font-size: 24px;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
 }
 
-.cell:hover {
-  background-color: #f0f0f0;
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.row {
+h1 {
+  margin-bottom: 20px;
+}
+
+.form-container {
   display: flex;
+  flex-direction: column;
 }
 
-#status {
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+input {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  padding: 10px;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #218838;
+}
+
+#message {
   margin-top: 20px;
-  font-size: 18px;
+  color: red;
 }
