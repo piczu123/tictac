@@ -3,25 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
     <title>Queue</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Queue for Game</h1>
-    <div id="status"></div>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const username = sessionStorage.getItem('username'); // Retrieve username from session storage
+    <div id="queue-container">
+        <h1>Queue for a Game</h1>
+        <div id="waiting-message">Waiting for an opponent...</div>
+        <button id="start-game-btn">Start Game</button>
+    </div>
 
-        socket.emit('joinQueue', username);
-
-        socket.on('matchFound', (opponent) => {
-            document.getElementById('status').innerHTML = `Matched with ${opponent}. Redirecting to game...`;
-            setTimeout(() => {
-                window.location.href = 'game.html'; // Redirect to game page
-            }, 2000);
-        });
-    </script>
+    <script src="queue.js"></script>
 </body>
 </html>
