@@ -1,42 +1,73 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const session = require('express-session');
+const path = require('path');
 const bodyParser = require('body-parser');
-const userRoutes = require('./userRoutes'); // Ensure this path is correct
+const session = require('express-session');
+const http = require('http');
+const socketIo = require('socket.io');
+const routes = require('./routes'); // Now your single routes file
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
 
-// Middleware to parse JSON and URL-encoded data
-app.use(bodyParser.json());
+// Middleware setup
 app.use(bodyParser.urlencoded({ extended: true }));
-
-// Session configuration
+app.use(bodyParser.json());
 app.use(session({
-    secret: 'yourSecretKey', // Replace with a strong secret key
+    secret: 'yourSecretKey',
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false } // Set to true if using HTTPS; for development, you might want to keep this false
+    saveUninitialized: true
 }));
 
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/yourDatabaseName', { // Replace with your database name
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '../public')));
 
-// Use user routes
-app.use('/api', userRoutes); // Make sure userRoutes is correctly set to your route file
+// Routes
+app.use('/', routes); // Use the combined routes
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something went wrong!');
+const queue = []; // Store players in the queue
+
+// Socket.io setup
+io.on('connection', (socket) => {
+    console.log('A user connected');
+
+    socket.on('joinQueue', (username) => {
+        queue.push({ socket, username });
+        console.log(`${username} joined the queue`);
+
+        if (queue.length >= 2) {
+            const player1 = queue.shift();
+            const player2 = queue.shift();
+
+            // Assign symbols
+            player1.socket.emit('matchFound', { opponent: player2.username, symbol: 'X' });
+            player2.socket.emit('matchFound', { opponent: player1.username, symbol: 'O' });
+        }
+    });
+
+    socket.on('leaveQueue', (username) => {
+        const index = queue.findIndex(player => player.socket === socket);
+        if (index !== -1) {
+            queue.splice(index, 1);
+            console.log(`${username} left the queue`);
+        }
+    });
+
+    socket.on('makeMove', (data) => {
+        socket.broadcast.emit('moveMade', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected');
+        const index = queue.findIndex(player => player.socket === socket);
+        if (index !== -1) {
+            queue.splice(index, 1);
+        }
+    });
 });
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+server.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
