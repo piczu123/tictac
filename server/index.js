@@ -14,7 +14,7 @@ const io = socketIo(server);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(session({
-    secret: 'yourSecretKey', // Change this to a secure random string
+    secret: 'yourSecretKey',
     resave: false,
     saveUninitialized: true
 }));
@@ -25,38 +25,43 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Routes
 app.use('/', routes);
 
-// Socket.io setup
-let waitingPlayers = [];
+const queue = []; // Store players in the queue
 
-// Handle player connections
+// Socket.io setup
 io.on('connection', (socket) => {
     console.log('A user connected');
 
-    socket.on('joinQueue', () => {
-        socket.join('queue');
-        console.log('User joined the queue');
-        waitingPlayers.push(socket.id);
+    socket.on('joinQueue', (username) => {
+        queue.push({ socket, username });
+        console.log(`${username} joined the queue`);
 
-        // Try to find a match
-        if (waitingPlayers.length >= 2) {
-            const player1 = waitingPlayers.shift();
-            const player2 = waitingPlayers.shift();
-            const currentPlayer = Math.random() > 0.5 ? 'X' : 'O';
+        if (queue.length >= 2) {
+            const player1 = queue.shift();
+            const player2 = queue.shift();
 
-            io.to(player1).emit('startGame', { currentPlayer: currentPlayer, opponent: player2 });
-            io.to(player2).emit('startGame', { currentPlayer: currentPlayer === 'X' ? 'O' : 'X', opponent: player1 });
-            console.log('Match found');
+            player1.socket.emit('matchFound', { opponent: player2.username });
+            player2.socket.emit('matchFound', { opponent: player1.username });
+        }
+    });
+
+    socket.on('leaveQueue', (username) => {
+        const index = queue.findIndex(player => player.socket === socket);
+        if (index !== -1) {
+            queue.splice(index, 1);
+            console.log(`${username} left the queue`);
         }
     });
 
     socket.on('makeMove', (data) => {
-        // Broadcast the move to the opponent
-        socket.to('game').emit('moveMade', data);
+        socket.broadcast.emit('moveMade', data);
     });
 
     socket.on('disconnect', () => {
         console.log('User disconnected');
-        waitingPlayers = waitingPlayers.filter(player => player !== socket.id);
+        const index = queue.findIndex(player => player.socket === socket);
+        if (index !== -1) {
+            queue.splice(index, 1);
+        }
     });
 });
 
