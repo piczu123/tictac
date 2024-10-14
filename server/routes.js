@@ -1,7 +1,8 @@
+// server/routes.js
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const userModel = require('./userModel'); // Ensure this matches your actual model name
+const User = require('./userModel'); // Ensure you import User correctly
 
 // Registration route
 router.post('/register', async (req, res) => {
@@ -9,11 +10,11 @@ router.post('/register', async (req, res) => {
     const hashedPassword = bcrypt.hashSync(password, 10);
     
     try {
-        const newUser = new userModel({ username, password: hashedPassword }); // Updated
+        const newUser = new User({ username, password: hashedPassword }); // Use User here
         await newUser.save();
         res.json({ success: true });
     } catch (err) {
-        console.error(err); // Log error
+        console.error(err); // Log error for debugging
         if (err.code === 11000) {
             res.json({ success: false, message: 'Username already exists.' });
         } else {
@@ -27,7 +28,7 @@ router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const user = await userModel.findOne({ username }); // Updated
+        const user = await User.findOne({ username }); // Use User here
         if (user && bcrypt.compareSync(password, user.password)) {
             req.session.username = username; // Store username in session
             res.json({ success: true });
@@ -35,7 +36,7 @@ router.post('/login', async (req, res) => {
             res.json({ success: false, message: 'Invalid credentials' });
         }
     } catch (err) {
-        console.error(err); // Log error
+        console.error(err); // Log error for debugging
         res.json({ success: false, message: 'An error occurred during login.' });
     }
 });
@@ -43,9 +44,8 @@ router.post('/login', async (req, res) => {
 // Logout route
 router.get('/logout', (req, res) => {
     req.session.destroy();
-    res.redirect('/');
+    res.redirect('/'); // Redirect after logout
 });
 
-// Other routes can be added as needed
-
+// Export the router
 module.exports = router;
